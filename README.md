@@ -1,8 +1,8 @@
 # Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/rostpmo2gq08ecag?svg=true)](https://ci.appveyor.com/project/mindkin/serilog-sinks-async)
-An Async Serilog sink
+An async Serilog sink
 
-Use this buffered async delegating sink to reduce the time it takes for your logging thread to write to your sink.
-This sink can work with any `IEventLogSink`. Especially suited to sinks that are either slow to write or wait on I/O (like databases, files systems etc).
+Use this buffered async delegating sink to reduce the time it takes to write your log events to a sink.
+This sink can work with any `IEventLogSink`. Especially suited to sinks that are either slow to write or wait on I/O (like databases, files systems etc). This sink uses a separate thread pool thread to execute your sink, freeing up the calling thread to run in your app.
 
 Install from NuGet:
 
