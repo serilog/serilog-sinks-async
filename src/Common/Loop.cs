@@ -2,9 +2,9 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace Serilog.Sinks.Async.IntTests
+namespace Serilog.Sinks.Async
 {
-    public static class TaskExtensions
+    public static class Loop
     {
         /// <summary>
         ///     Repeats the specified <see cref="action" />, until the specified <see cref="until" /> returns true,
@@ -62,6 +62,52 @@ namespace Serilog.Sinks.Async.IntTests
             } while (stopwatch.Elapsed < timeout);
 
             return new RetryResult<TResult>(result, retries, stopwatch.Elapsed);
+        }
+
+        /// <summary>
+        ///     Repeats the specified <see cref="action" /> the specified number of times
+        /// </summary>
+        public static void For(Action action, int times)
+        {
+            if (times > 0)
+            {
+                for (var counter = 0; counter < times; counter++)
+                {
+                    action();
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Repeats the specified <see cref="Action{Int32}" /> the specified number of times, from 0 to <see cref="to" />
+        /// </summary>
+        public static void For(Action<int> action, int to)
+        {
+            if (to > 0)
+            {
+                for (var counter = 0; counter < to; counter++)
+                {
+                    action(counter);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Repeats the specified <see cref="Action{Int32}" /> the specified number of times, from <see cref="from" /> to
+        ///     <see cref="to" />
+        /// </summary>
+        public static void For(Action<int> action, int from, int to)
+        {
+            if (to > 0
+                && from >= 0
+                && from <= to)
+            {
+                var maxCount = (from > 0) ? (to + 1) : to;
+                for (var counter = from; counter < maxCount; counter++)
+                {
+                    action(counter);
+                }
+            }
         }
     }
 

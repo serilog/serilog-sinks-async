@@ -25,7 +25,8 @@ namespace Serilog.Sinks.Async.IntTests
         {
             _logger.Information("{Message}", "amessage");
 
-            var result = TaskExtensions.Retry(() => _memorySink.LogEvents, events => events.Count() == 1,
+            var result = Loop.Retry(() => _memorySink.LogEvents,
+                events => events.Count() == 1,
                 TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10));
 
             Assert.AreEqual(1, result.Result.Count());

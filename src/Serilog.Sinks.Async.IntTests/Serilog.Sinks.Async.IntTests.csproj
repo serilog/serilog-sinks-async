@@ -64,12 +64,15 @@
     <Compile Include="SinkSpec.cs" />
     <Compile Include="AsyncSpec.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TaskExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Project>{65BA0F86-1CE7-4EC1-9793-4190D8B5FC8F}</Project>
+      <Name>Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Serilog.Sinks.Async\Serilog.Sinks.Async.csproj">
       <Project>{654ad496-5b0e-4435-8142-445cc57f1f81}</Project>
       <Name>Serilog.Sinks.Async</Name>

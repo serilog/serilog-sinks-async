@@ -21,7 +21,7 @@ namespace Serilog.Sinks.Async.IntTests
             try
             {
                 var delayCount = 0;
-                for (var counter = 0; counter < count; counter++)
+                Loop.For(counter =>
                 {
                     if (withDelay
                         && counter > 0
@@ -34,7 +34,7 @@ namespace Serilog.Sinks.Async.IntTests
                         Thread.Sleep(delay);
                     }
                     logger.Information("{$Counter}", counter);
-                }
+                }, count);
             }
             finally
             {
@@ -46,14 +46,14 @@ namespace Serilog.Sinks.Async.IntTests
 
         private static List<LogEvent> RetrieveEvents(MemorySink sink, int count)
         {
-            Debug.WriteLine("{0:h:mm:ss tt} Retrieving events", DateTime.Now);
+            Debug.WriteLine("{0:h:mm:ss tt} Retrieving {1} events", DateTime.Now, count);
 
             var evts = new List<LogEvent>();
-            var result = TaskExtensions.Retry(() =>
+            var result = Loop.Retry(() =>
             {
                 evts.AddRange(sink.LogEvents);
                 return evts;
-            }, events => events != null && events.Count == count, TimeSpan.FromSeconds(1),
+            }, events => events != null && events.Count >= count, TimeSpan.FromSeconds(1),
                 TimeSpan.FromSeconds(30));
 
             return result.Result;

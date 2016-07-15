@@ -5,7 +5,7 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.Async.IntTests
 {
-    public class MemorySink : ILogEventSink
+    internal class MemorySink : ILogEventSink
     {
         private ConcurrentQueue<LogEvent> _events = new ConcurrentQueue<LogEvent>();
 

@@ -79,6 +79,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Project>{65BA0F86-1CE7-4EC1-9793-4190D8B5FC8F}</Project>
+      <Name>Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Serilog.Sinks.Async\Serilog.Sinks.Async.csproj">
       <Project>{654AD496-5B0E-4435-8142-445CC57F1F81}</Project>
       <Name>Serilog.Sinks.Async</Name>

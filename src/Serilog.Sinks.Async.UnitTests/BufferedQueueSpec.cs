@@ -141,10 +141,7 @@ namespace Serilog.Sinks.Async.UnitTests
             {
                 var messages = new List<TestMessage>();
 
-                for (var counter = 0; counter < count; counter++)
-                {
-                    messages.Add(new TestMessage());
-                }
+                Loop.For(counter => { messages.Add(new TestMessage()); }, count);
 
                 return messages;
             }
