@@ -1,0 +1,61 @@
+version: 1.0.{build}
+clone_depth: 5
+force_https_clone: true
+environment:
+  REPO_CLONE_ATTEMPTS: 5
+  REPO_CLONE_TIMEOUT: 180
+  REPO_CLONE_PROTOCOL: https
+  buildconfig: Release
+  nugetsprefix: Serilog.Sinks.Async.*
+  symbolsourcekey: 8d3f700a-d75b-4261-97a4-0dca466f3991 
+  matrix:
+  - test_type: Unit.Testing
+    test_assemblies: Serilog.Sinks.Async.UnitTests\bin\$env:buildconfig\Serilog.Sinks.Async.UnitTests.dll
+    test_category: Unit
+    test_settings:
+  - test_type: Integration.Testing
+    test_assemblies: Serilog.Sinks.Async.IntTests\bin\$env:buildconfig\Serilog.Sinks.Async.IntTests.dll
+    test_category: Integration
+    test_settings:
+ - test_type: Perf.Testing
+    test_assemblies: Serilog.Sinks.Async.IntTests\bin\$env:buildconfig\Serilog.Sinks.Async.IntTests.dll
+    test_category: Integration.Perf
+    test_settings:
+matrix:
+    fast_finish: false
+init:
+#- ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+clone_script:
+- ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/clone-repo-retry.ps1'))
+install:
+- ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/mindkin/ci/master/AppVeyor/set-version-from-assemblyinformationalversion.ps1'))
+build_script:
+- cd src
+- msbuild.exe Serilog.Sinks.Async.sln /t:Rebuild /p:Configuration=%buildconfig% /verbosity:minimal
+- cd..
+test_script:
+- ps: >-
+    cd src
+
+    $env:test_assemblies.Split(';') | % {
+      $assemblyName = $ExecutionContext.InvokeCommand.ExpandString($_)
+
+      if ($env:test_settings){
+        &vstest.console $assemblyName /InIsolation /logger:AppVeyor /settings:$env:test_settings /testcasefilter:`"TestCategory=$env:test_category`"
+        } else {
+        &vstest.console $assemblyName /InIsolation /logger:AppVeyor /testcasefilter:`"TestCategory=$env:test_category`"
+        }
+
+      if ($global:LASTEXITCODE -ne 0){
+        $host.SetShouldExit($global:LASTEXITCODE)
+        break
+      }
+    }
+
+    cd..
+after_test:
+- ps: |
+    Get-ChildItem -Recurse .\$env:nugetsprefix.nupkg | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+    Get-ChildItem -Recurse .\$env:nugetsprefix.symbols.nupkg | % { nuget push $_.FullName $env:symbolsourcekey -Source https://www.myget.org/F/jezzsantos/api/v2/package }
+deploy: off
+
