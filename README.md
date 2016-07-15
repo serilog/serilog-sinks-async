@@ -1,4 +1,4 @@
-# Serilog.Sinks.Async
+# Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/rostpmo2gq08ecag?svg=true)](https://ci.appveyor.com/project/mindkin/serilog-sinks-async)
 An Async Serilog sink
 
 Use this buffered async delegating sink to reduce the time it takes for your logging thread to write to your sink.
