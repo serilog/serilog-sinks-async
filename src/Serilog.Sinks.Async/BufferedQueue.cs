@@ -63,7 +63,7 @@ namespace Serilog.Sinks.Async
                 {
                     action(message);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //Log  and Ignore exception and continue
                 }

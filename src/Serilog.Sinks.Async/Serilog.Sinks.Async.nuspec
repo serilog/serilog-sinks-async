@@ -1,0 +1,15 @@
+﻿<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <authors>$author$</authors>
+    <licenseUrl>https://github.com/jezzsantos/Serilog.Sinks.Async/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/jezzsantos/Serilog.Sinks.Async</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>https://github.com/jezzsantos/Serilog.Sinks.Async/wiki/Release-Notes</releaseNotes>
+    <copyright>Copyright © 2016</copyright>
+    <tags>Serilog</tags>
+  </metadata>
+</package>
