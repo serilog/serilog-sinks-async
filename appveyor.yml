@@ -17,7 +17,7 @@ environment:
     test_assemblies: Serilog.Sinks.Async.IntTests\bin\$env:buildconfig\Serilog.Sinks.Async.IntTests.dll
     test_category: Integration
     test_settings:
- - test_type: Perf.Testing
+  - test_type: Perf.Testing
     test_assemblies: Serilog.Sinks.Async.IntTests\bin\$env:buildconfig\Serilog.Sinks.Async.IntTests.dll
     test_category: Integration.Perf
     test_settings:
