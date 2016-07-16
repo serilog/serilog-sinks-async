@@ -1,4 +1,4 @@
-# Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/rostpmo2gq08ecag?svg=true)](https://ci.appveyor.com/project/mindkin/serilog-sinks-async)
+# Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/ewlh5x6xl4se5ech?svg=true)](https://ci.appveyor.com/project/JezzSantos/serilog-sinks-async)
 An async Serilog sink
 
 Use this buffered, async, delegating, sink to reduce the time it takes for your app to write your log events to your sinks. This sink can work with any `IEventLogSink` you use.
