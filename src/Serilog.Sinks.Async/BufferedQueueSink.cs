@@ -49,9 +49,6 @@ namespace Serilog.Sinks.Async
             StartConsumer(logEvent => _sink.Emit(logEvent));
         }
 
-        //TODO: To save on multiple threads in the thread pool, move this method to super class, 
-        //that can execute a single thread and  consume all instances of this sink in same Task.Run()
-        //See: Concurrency book, where he runs several tasks concurrently 
         public void StartConsumer(Action<LogEvent> action)
         {
             Task.Run(async () =>
