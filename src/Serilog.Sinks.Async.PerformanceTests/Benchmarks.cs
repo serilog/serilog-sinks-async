@@ -1,5 +1,4 @@
-﻿using System;
-using BenchmarkDotNet.Running;
+﻿using BenchmarkDotNet.Running;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Serilog.Sinks.Async.PerformanceTests

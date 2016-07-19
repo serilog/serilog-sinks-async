@@ -60,6 +60,9 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="..\GlobalAssemblyInfo.cs">
+      <Link>Properties\GlobalAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="MemorySink.cs" />
     <Compile Include="SinkSpec.cs" />
     <Compile Include="AsyncSpec.cs" />
