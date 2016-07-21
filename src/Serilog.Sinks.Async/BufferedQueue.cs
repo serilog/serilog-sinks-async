@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -14,13 +13,8 @@ namespace Serilog.Sinks.Async
     public class BufferedQueue<TMessage>
     {
         private const int DefaultQueueSize = 50;
-
+        private readonly ActionBlock<TMessage> _executor;
         private readonly BufferBlock<TMessage> _queue;
-
-        public BufferedQueue()
-            : this(0)
-        {
-        }
 
         public BufferedQueue(int size)
         {
@@ -31,9 +25,28 @@ namespace Serilog.Sinks.Async
             });
         }
 
+        public BufferedQueue(int size, Action<TMessage> action)
+        {
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+
+            Size = ((size > 0) ? size : DefaultQueueSize);
+            _queue = new BufferBlock<TMessage>(new DataflowBlockOptions
+            {
+                BoundedCapacity = Size
+            });
+            _executor = new ActionBlock<TMessage>(message => { ExecuteAction(action, message); });
+            _queue.LinkTo(_executor, new DataflowLinkOptions
+            {
+                PropagateCompletion = true
+            });
+        }
+
         public Task IsComplete
         {
-            get { return _queue.Completion; }
+            get { return _executor != null ? _executor.Completion : _queue.Completion; }
         }
 
         public int Count
@@ -48,25 +61,15 @@ namespace Serilog.Sinks.Async
             await _queue.SendAsync(message);
         }
 
-        public async Task ConsumeAsync(Action<TMessage> action)
+        private static void ExecuteAction(Action<TMessage> action, TMessage message)
         {
-            await ConsumeAsync(action, CancellationToken.None);
-        }
-
-        public async Task ConsumeAsync(Action<TMessage> action, CancellationToken cancellation)
-        {
-            while (await _queue.OutputAvailableAsync(cancellation))
+            try
             {
-                var message = await _queue.ReceiveAsync(cancellation);
-
-                try
-                {
-                    action(message);
-                }
-                catch (Exception)
-                {
-                    //Log  and Ignore exception and continue
-                }
+                action(message);
+            }
+            catch (Exception)
+            {
+                //Log and Ignore exception and continue
             }
         }
 

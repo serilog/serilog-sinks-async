@@ -71,6 +71,7 @@
     <Compile Include="..\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AssertExtensions.cs" />
     <Compile Include="BufferedQueueSinkSpec.cs" />
     <Compile Include="BufferedQueueSpec.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

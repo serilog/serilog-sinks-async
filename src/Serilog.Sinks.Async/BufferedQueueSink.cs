@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using Serilog.Core;
 using Serilog.Events;
 
@@ -44,25 +43,15 @@ namespace Serilog.Sinks.Async
             }
             ConsumerStarted = true;
 
-            _queue = new BufferedQueue<LogEvent>(_bufferSize);
-
-            StartConsumer(logEvent => _sink.Emit(logEvent));
-        }
-
-        public void StartConsumer(Action<LogEvent> action)
-        {
-            Task.Run(async () =>
+            _queue = new BufferedQueue<LogEvent>(_bufferSize, logEvent =>
             {
-                while (true)
+                try
                 {
-                    try
-                    {
-                        await _queue.ConsumeAsync(action);
-                    }
-                    catch (Exception)
-                    {
-                        //Log and Ignore exception and continue
-                    }
+                    _sink.Emit(logEvent);
+                }
+                catch (Exception)
+                {
+                    //Log and Ignore exception and continue
                 }
             });
         }
