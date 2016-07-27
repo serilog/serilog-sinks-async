@@ -6,20 +6,14 @@ using Serilog.Parsing;
 
 namespace Serilog.Sinks.Async.PerformanceTests
 {
-    public class ThroughputBenchmark
+    public class LatencyBenchmark
     {
         private const int Count = 10000;
 
         private readonly LogEvent _evt = new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null,
             new MessageTemplate(new[] {new TextToken("Hello")}), new LogEventProperty[0]);
 
-        private readonly SignallingSink _signal;
         private Logger _syncLogger, _asyncLogger, _async2Logger;
-
-        public ThroughputBenchmark()
-        {
-            _signal = new SignallingSink(Count);
-        }
 
         [Setup]
         public void Reset()
@@ -28,18 +22,16 @@ namespace Serilog.Sinks.Async.PerformanceTests
             _asyncLogger?.Dispose();
             _async2Logger?.Dispose();
 
-            _signal.Reset();
-
             _syncLogger = new LoggerConfiguration()
-                .WriteTo.Sink(_signal)
+                .WriteTo.Sink(new SilentSink())
                 .CreateLogger();
 
             _asyncLogger = new LoggerConfiguration()
-                .WriteTo.Async(a => a.Sink(_signal))
+                .WriteTo.Async(a => a.Sink(new SilentSink()))
                 .CreateLogger();
 
             _async2Logger = new LoggerConfiguration()
-                .WriteTo.Async2(a => a.Sink(_signal))
+                .WriteTo.Async2(a => a.Sink(new SilentSink()))
                 .CreateLogger();
         }
 
@@ -50,9 +42,6 @@ namespace Serilog.Sinks.Async.PerformanceTests
             {
                 _syncLogger.Write(_evt);
             }
-
-            // Will complete immediately, but makes the comparison fairer.
-            _signal.Wait();
         }
 
         [Benchmark]
@@ -62,8 +51,6 @@ namespace Serilog.Sinks.Async.PerformanceTests
             {
                 _asyncLogger.Write(_evt);
             }
-
-            _signal.Wait();
         }
 
         [Benchmark]
@@ -73,8 +60,6 @@ namespace Serilog.Sinks.Async.PerformanceTests
             {
                 _async2Logger.Write(_evt);
             }
-
-            _signal.Wait();
         }
     }
 }

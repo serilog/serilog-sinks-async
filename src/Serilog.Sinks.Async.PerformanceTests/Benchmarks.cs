@@ -10,6 +10,7 @@ namespace Serilog.Sinks.Async.PerformanceTests
         public void Benchmark()
         {
             BenchmarkRunner.Run<ThroughputBenchmark>();
+            BenchmarkRunner.Run<LatencyBenchmark>();
         }
     }
 }
