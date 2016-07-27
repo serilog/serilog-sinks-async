@@ -68,6 +68,7 @@
     <Compile Include="..\GlobalAssemblyInfo.cs">
       <Link>Properties\GlobalAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="AsyncWorkerSink.cs" />
     <Compile Include="BufferedQueue.cs" />
     <Compile Include="BufferedQueueSink.cs" />
     <Compile Include="LoggerConfigurationExtensions.cs" />

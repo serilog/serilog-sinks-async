@@ -1,5 +1,6 @@
 ﻿using System;
 using BenchmarkDotNet.Attributes;
+using Serilog.Core;
 using Serilog.Events;
 using Serilog.Parsing;
 
@@ -13,11 +14,21 @@ namespace Serilog.Sinks.Async.PerformanceTests
             new MessageTemplate(new[] {new TextToken("Hello")}), new LogEventProperty[0]);
 
         private readonly SignallingSink _signal;
-        private readonly ILogger _syncLogger, _asyncLogger;
+        private Logger _syncLogger, _asyncLogger, _async2Logger;
 
         public ThroughputBenchmark()
         {
             _signal = new SignallingSink(Count);
+        }
+
+        [Setup]
+        public void Reset()
+        {
+            _syncLogger?.Dispose();
+            _asyncLogger?.Dispose();
+            _async2Logger?.Dispose();
+
+            _signal.Reset();
 
             _syncLogger = new LoggerConfiguration()
                 .WriteTo.Sink(_signal)
@@ -26,12 +37,10 @@ namespace Serilog.Sinks.Async.PerformanceTests
             _asyncLogger = new LoggerConfiguration()
                 .WriteTo.Async(a => a.Sink(_signal))
                 .CreateLogger();
-        }
 
-        [Setup]
-        public void Reset()
-        {
-            _signal.Reset();
+            _async2Logger = new LoggerConfiguration()
+                .WriteTo.Async2(a => a.Sink(_signal))
+                .CreateLogger();
         }
 
         [Benchmark(Baseline = true)]
@@ -52,6 +61,17 @@ namespace Serilog.Sinks.Async.PerformanceTests
             for (var i = 0; i < Count; ++i)
             {
                 _asyncLogger.Write(_evt);
+            }
+
+            _signal.Wait();
+        }
+
+        [Benchmark]
+        public void Async2()
+        {
+            for (var i = 0; i < Count; ++i)
+            {
+                _async2Logger.Write(_evt);
             }
 
             _signal.Wait();
