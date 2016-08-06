@@ -9,7 +9,7 @@ This sink uses a separate worker thread to write to your sink, freeing up the ca
 Install from NuGet:
 
 ```powershell
-Install-Package Serilog.Sinks.Async
+Install-Package Serilog.Sinks.Async -Pre
 ```
 
 Add this sink to your pipeline:
