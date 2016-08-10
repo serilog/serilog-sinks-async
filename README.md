@@ -41,7 +41,7 @@ The default memory buffer feeding the worker thread is capped to 10,000 items, a
     .WriteTo.Async(a => a.RollingFile("logs/myapp-{Date}.txt"), 500)
 ```
 
-### XML `<appSettings> and JSON configuration
+### XML `<appSettings>` and JSON configuration
 
 XML and JSON configuration support has not yet been added for this wrapper.
 
