@@ -3,6 +3,7 @@
 
   "dependencies": {
     "Serilog.Sinks.Async": { "target": "project" },
+    "Serilog.Sinks.File": "2.2.0",
     "xunit": "2.1.0",
     "dotnet-test-xunit": "1.0.0-rc2-build10025",
     "BenchmarkDotNet": "0.9.7-beta"
@@ -18,8 +19,7 @@
         "Microsoft.NETCore.App": {
           "type": "platform",
           "version": "1.0.0"
-        },
-        "System.Collections": "4.0.11"
+        }
       },
       "imports": [
         "dnxcore50",
