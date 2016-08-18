@@ -20,7 +20,7 @@ Log.Logger = new LoggerConfiguration()
     // Other logger configuration
     .CreateLogger()
     
-Log.Information("This will be writtend to disk on the worker thread");
+Log.Information("This will be written to disk on the worker thread");
 
 // At application shutdown
 Log.CloseAndFlush();
