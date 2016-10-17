@@ -9,7 +9,7 @@ An asynchronous wrapper for other [Serilog](https://serilog.net) sinks. Use this
 Install from [NuGet](https://nuget.org/packages/serilog.sinks.async):
 
 ```powershell
-Install-Package Serilog.Sinks.Async -Pre
+Install-Package Serilog.Sinks.Async
 ```
 
 Assuming you have already installed the target sink, such as the rolling file sink, move the wrapped sink's configuration within a `WriteTo.Async()` statement:
