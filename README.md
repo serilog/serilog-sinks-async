@@ -1,40 +1,50 @@
-# Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/ewlh5x6xl4se5ech?svg=true)](https://ci.appveyor.com/project/JezzSantos/serilog-sinks-async)
-An async Serilog sink
+# Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/gvk0wl7aows14spn?svg=true)](https://ci.appveyor.com/project/serilog/serilog-sinks-async) [![NuGet](https://img.shields.io/nuget/vpre/Serilog.Sinks.Async.svg?maxAge=2592000)](https://www.nuget.org/packages/Serilog.Sinks.Async) [![Join the chat at https://gitter.im/serilog/serilog](https://img.shields.io/gitter/room/serilog/serilog.svg)](https://gitter.im/serilog/serilog)
 
-Use this buffered, async, delegating, sink to reduce the time it takes for your app to write your log events to your sinks. This sink can work with any `IEventLogSink` you use.
+An asynchronous wrapper for other [Serilog](https://serilog.net) sinks. Use this sink to reduce the overhead of logging calls by delegating work to a background thread. This is especially suited to non-batching sinks like the [File](https://github.com/serilog/serilog-sinks-file) and [RollingFile](https://github.com/serilog-serilog-sinks-rollingfile) sinks that may be affected by I/O bottlenecks.
 
-Especially suited to sinks that are either slow to write or have I/O bottlenecks (like http, databases, file writes etc.). 
-This sink uses a separate thread pool thread to write to your sink, freeing up the calling thread to run in your app without having to wait. 
+**Note:** many of the network-based sinks (_CouchDB_, _Elasticsearch_, _MongoDB_, _Seq_, _Splunk_...) already perform asychronous batching natively and do not benefit from this wrapper.
 
-Utilizes the producer/consumer pattern (using the TPL `BufferBlock<T>` class), where the calling thread produces log events (on your main thread), and the consumer runs on a thread pool thread consuming log events and writing them to your sink.
+### Getting started
 
-Install from NuGet:
+Install from [NuGet](https://nuget.org/packages/serilog.sinks.async):
 
 ```powershell
-Install-Package Serilog.Sinks.Async
+Install-Package Serilog.Sinks.Async -Pre
 ```
 
-Add this sink to your pipeline:
+Assuming you have already installed the target sink, such as the rolling file sink, move the wrapped sink's configuration within a `WriteTo.Async()` statement:
 
 ```csharp
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Async(x => x.Sink(new YourSink()))
+    .WriteTo.Async(a => a.RollingFile("logs/myapp-{Date}.txt"))
     // Other logger configuration
     .CreateLogger()
+    
+Log.Information("This will be written to disk on the worker thread");
+
+// At application shutdown
+Log.CloseAndFlush();
 ```
 
-Now `YourSink` will write messages using another [thread pool] thread while your logging thread gets on with more important stuff.
+The wrapped sink (`RollingFile` in this case) will be invoked on a worker thread while your application's thread gets on with more important stuff.
 
-If you think your code is producing log events faster than your sink can consume and write them, then the buffer is going to grow in memory, until you run out!
-Set a maximum size of the buffer so that your memory is not filled up. 
-Buffered log events are then (async) postponed in your app thread until your sink catches up.
+Because the memory buffer may contain events that have not yet been written to the target sink, it is important to call `Log.CloseAndFlush()` or `Logger.Dispose()` when the application exits.
+
+### Buffering
+
+This sink uses a separate worker thread to write to your sink, freeing up the calling thread to run in your app without having to wait.
+
+The default memory buffer feeding the worker thread is capped to 10,000 items, after which arriving events will be dropped. To increase or decrease this limit, specify it when configuring the async sink.
 
 ```csharp
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Async(x => x.Sink(new YourSink), 500) //Max number of logevents to buffer in memory
-    // Other logger configurationg
-    .CreateLogger()
+    // Reduce the buffer to 500 events
+    .WriteTo.Async(a => a.RollingFile("logs/myapp-{Date}.txt"), 500)
 ```
 
-## About this Sink
-This sink was created by this conversation thread: https://github.com/serilog/serilog/issues/809
+### XML `<appSettings>` and JSON configuration
+
+XML and JSON configuration support has not yet been added for this wrapper.
+
+### About this sink
+
+This sink was created following this conversation thread: https://github.com/serilog/serilog/issues/809.

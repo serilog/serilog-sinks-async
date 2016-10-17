@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "global", "global", "{154C7C14-E737-40DF-A631-B1673FE76187}"
 	ProjectSection(SolutionItems) = preProject
 		appveyor.yml = appveyor.yml
+		Bench.ps1 = Bench.ps1
 		Build.ps1 = Build.ps1
 		global.json = global.json
 		LICENSE = LICENSE
