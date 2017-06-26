@@ -4,6 +4,7 @@ using System.Threading;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
+using System.Threading.Tasks;
 
 namespace Serilog.Sinks.Async
 {
@@ -14,7 +15,7 @@ namespace Serilog.Sinks.Async
         volatile bool _disposed;
         readonly CancellationTokenSource _cancel = new CancellationTokenSource();
         readonly BlockingCollection<LogEvent> _queue;
-        readonly Thread _worker;
+        readonly Task _worker;
 
         public BackgroundWorkerSink(Logger pipeline, int bufferCapacity)
         {
@@ -23,8 +24,7 @@ namespace Serilog.Sinks.Async
             _pipeline = pipeline;
             _bufferCapacity = bufferCapacity;
             _queue = new BlockingCollection<LogEvent>(_bufferCapacity);
-            _worker = new Thread(Pump) { IsBackground = true, Name = typeof(BackgroundWorkerSink).FullName };
-            _worker.Start();
+            _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         public void Emit(LogEvent logEvent)
@@ -39,7 +39,7 @@ namespace Serilog.Sinks.Async
         {
             _disposed = true;
             _cancel.Cancel();
-            _worker.Join();            
+            _worker.Wait();            
             _pipeline.Dispose();
             // _cancel not disposed, because it will make _cancel.Cancel() non-idempotent
         }
