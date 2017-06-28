@@ -10,14 +10,14 @@ namespace Serilog.Sinks.Async
 {
     sealed class BackgroundWorkerSink : ILogEventSink, IDisposable
     {
-        readonly Logger _pipeline;
+        readonly ILogEventSink _pipeline;
         readonly int _bufferCapacity;
         volatile bool _disposed;
         readonly CancellationTokenSource _cancel = new CancellationTokenSource();
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
 
-        public BackgroundWorkerSink(Logger pipeline, int bufferCapacity)
+        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity)
         {
             if (pipeline == null) throw new ArgumentNullException(nameof(pipeline));
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
@@ -40,7 +40,7 @@ namespace Serilog.Sinks.Async
             _disposed = true;
             _cancel.Cancel();
             _worker.Wait();            
-            _pipeline.Dispose();
+            (_pipeline as IDisposable)?.Dispose();
             // _cancel not disposed, because it will make _cancel.Cancel() non-idempotent
         }
 
@@ -53,14 +53,14 @@ namespace Serilog.Sinks.Async
                     while (true)
                     {
                         var next = _queue.Take(_cancel.Token);
-                        _pipeline.Write(next);
+                        _pipeline.Emit(next);
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     LogEvent next;
                     while (_queue.TryTake(out next))
-                        _pipeline.Write(next);
+                        _pipeline.Emit(next);
                 }
             }
             catch (Exception ex)
