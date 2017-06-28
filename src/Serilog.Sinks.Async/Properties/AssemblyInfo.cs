@@ -2,7 +2,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyVersion("1.0.0.0")]
 [assembly: CLSCompliant(true)]
 [assembly: InternalsVisibleTo("Serilog.Sinks.Async.Tests, PublicKey=" +
                               "0024000004800000940000000602000000240000525341310004000001000100fb8d13fd344a1c" +
