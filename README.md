@@ -41,7 +41,24 @@ The default memory buffer feeding the worker thread is capped to 10,000 items, a
 
 ### XML `<appSettings>` and JSON configuration
 
-XML and JSON configuration support has not yet been added for this wrapper.
+Using [Serilog.Settings.Configuration](https://github.com/serilog/serilog-settings-configuration) JSON:
+
+```json
+{
+  "Serilog": {
+    "WriteTo": [{
+      "Name": "Async",
+      "Args": {
+        "configure": [{
+          "Name": "LiterateConsole"
+        }]
+      }
+    }]
+  }
+}
+```
+
+XML configuration support has not yet been added for this wrapper.
 
 ### About this sink
 
