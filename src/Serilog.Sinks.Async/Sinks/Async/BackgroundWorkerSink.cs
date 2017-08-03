@@ -12,17 +12,18 @@ namespace Serilog.Sinks.Async
     {
         readonly ILogEventSink _pipeline;
         readonly int _bufferCapacity;
+        readonly bool _blockWhenFull;
         volatile bool _disposed;
-        readonly CancellationTokenSource _cancel = new CancellationTokenSource();
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
 
-        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity)
+        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull)
         {
             if (pipeline == null) throw new ArgumentNullException(nameof(pipeline));
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
             _pipeline = pipeline;
             _bufferCapacity = bufferCapacity;
+            _blockWhenFull = blockWhenFull;
             _queue = new BlockingCollection<LogEvent>(_bufferCapacity);
             _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
@@ -31,36 +32,35 @@ namespace Serilog.Sinks.Async
         {
             // The disposed check is racy, but only ensures we don't prevent flush from
             // completing by pushing more events.
-            if (!_disposed && !_queue.TryAdd(logEvent))
-                SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _bufferCapacity);
+            if (_disposed)
+                return;
+
+            if (!this._blockWhenFull)
+            {
+                if (!_queue.TryAdd(logEvent))
+                    SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _bufferCapacity);
+            }
+            else
+            {
+                this._queue.Add(logEvent);
+            }
         }
 
         public void Dispose()
         {
             _disposed = true;
-            _cancel.Cancel();
+            _queue.CompleteAdding();
             _worker.Wait();            
             (_pipeline as IDisposable)?.Dispose();
-            // _cancel not disposed, because it will make _cancel.Cancel() non-idempotent
         }
 
         void Pump()
         {
             try
             {
-                try
+                foreach (var next in _queue.GetConsumingEnumerable())
                 {
-                    while (true)
-                    {
-                        var next = _queue.Take(_cancel.Token);
-                        _pipeline.Emit(next);
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    LogEvent next;
-                    while (_queue.TryTake(out next))
-                        _pipeline.Emit(next);
+                    _pipeline.Emit(next);
                 }
             }
             catch (Exception ex)

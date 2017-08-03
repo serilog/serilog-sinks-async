@@ -1,9 +1,4 @@
-﻿using System;
-using System.Threading;
-using Serilog.Core;
-using Serilog.Events;
-using Serilog.Parsing;
-using Serilog.Sinks.Async.Tests.Support;
+﻿using Serilog.Sinks.Async.Tests.Support;
 using Xunit;
 
 namespace Serilog.Sinks.Async.Tests
