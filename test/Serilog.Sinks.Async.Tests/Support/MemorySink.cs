@@ -10,12 +10,12 @@ namespace Serilog.Sinks.Async.Tests.Support
     {
         public ConcurrentBag<LogEvent> Events { get; } = new ConcurrentBag<LogEvent>();
         public bool ThrowAfterCollecting { get; set; }
-        public bool DelayEmit { get; set; }
+        public TimeSpan? DelayEmit { get; set; }
 
         public void Emit(LogEvent logEvent)
         {
-            if (DelayEmit)
-                Task.Delay(TimeSpan.FromSeconds(3)).Wait();
+            if (DelayEmit.HasValue)
+                Task.Delay(DelayEmit.Value).Wait();
 
             Events.Add(logEvent);
 

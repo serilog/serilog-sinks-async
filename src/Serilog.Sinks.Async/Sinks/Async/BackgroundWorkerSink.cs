@@ -13,7 +13,6 @@ namespace Serilog.Sinks.Async
         readonly ILogEventSink _pipeline;
         readonly int _bufferCapacity;
         readonly bool _blockWhenFull;
-        volatile bool _disposed;
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
 
@@ -30,27 +29,36 @@ namespace Serilog.Sinks.Async
 
         public void Emit(LogEvent logEvent)
         {
-            // The disposed check is racy, but only ensures we don't prevent flush from
-            // completing by pushing more events.
-            if (_disposed)
+            if (this._queue.IsAddingCompleted)
                 return;
 
-            if (!this._blockWhenFull)
+            try
             {
-                if (!_queue.TryAdd(logEvent))
-                    SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _bufferCapacity);
+                if (_blockWhenFull)
+                {
+                    _queue.Add(logEvent);
+                }
+                else
+                {
+                    if (!_queue.TryAdd(logEvent))
+                        SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _bufferCapacity);
+                }
             }
-            else
+            catch (InvalidOperationException)
             {
-                this._queue.Add(logEvent);
+                // Thrown in the event of a race condition when we try to add another event after 
+                // CompleteAdding has been called
             }
         }
 
         public void Dispose()
         {
-            _disposed = true;
+            // Prevent any more events from being added
             _queue.CompleteAdding();
-            _worker.Wait();            
+
+            // Allow queued events to be flushed
+            _worker.Wait();      
+            
             (_pipeline as IDisposable)?.Dispose();
         }
 

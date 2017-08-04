@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Serilog.Core;
-using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Parsing;
 using Serilog.Sinks.Async.Tests.Support;
@@ -41,7 +40,6 @@ namespace Serilog.Sinks.Async.Tests
         {
             var logEvent = CreateEvent();
             _sink.Emit(logEvent);
-            _sink.Dispose();
 
             await Task.Delay(TimeSpan.FromSeconds(3));
 
@@ -90,7 +88,7 @@ namespace Serilog.Sinks.Async.Tests
 
             // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity 
             // after the first event is popped
-            _innerSink.DelayEmit = true;
+            _innerSink.DelayEmit = TimeSpan.FromMilliseconds(300);
 
             var events = new List<LogEvent>
             {
@@ -106,12 +104,12 @@ namespace Serilog.Sinks.Async.Tests
                 _sink.Emit(e);
                 sw.Stop();
 
-                Assert.True(sw.ElapsedMilliseconds < 2000, "Should not block the caller when the queue is full");
+                Assert.True(sw.ElapsedMilliseconds < 200, "Should not block the caller when the queue is full");
             });
 
             // If we *weren't* dropped events, the delay in the inner sink would mean the 5 events would take 
             // at least 15 seconds to process
-            await Task.Delay(TimeSpan.FromSeconds(18));
+            await Task.Delay(TimeSpan.FromSeconds(2));
 
             // Events should be dropped
             Assert.Equal(2, _innerSink.Events.Count);
@@ -124,7 +122,7 @@ namespace Serilog.Sinks.Async.Tests
 
             // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity 
             // after the first event is popped
-            _innerSink.DelayEmit = true;
+            _innerSink.DelayEmit = TimeSpan.FromMilliseconds(300);
 
             var events = new List<LogEvent>
             {
@@ -144,11 +142,11 @@ namespace Serilog.Sinks.Async.Tests
                 // subsequent calls, the queue should be full, so we should be blocked
                 if (i > 0)
                 {
-                    Assert.True(sw.ElapsedMilliseconds > 2000, "Should block the caller when the queue is full");
+                    Assert.True(sw.ElapsedMilliseconds > 200, "Should block the caller when the queue is full");
                 }
             });
 
-            await Task.Delay(TimeSpan.FromSeconds(12));
+            await Task.Delay(TimeSpan.FromSeconds(2));
 
             // No events should be dropped
             Assert.Equal(3, _innerSink.Events.Count);
