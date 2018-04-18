@@ -39,6 +39,22 @@ The default memory buffer feeding the worker thread is capped to 10,000 items, a
     .WriteTo.Async(a => a.File("logs/myapp.log"), bufferSize: 500)
 ```
 
+### Monitoring
+
+Typically, one should assign adequate buffer capacity to enable the wrapped sinks to ingest the events as they are processed without ever approaching the limit. In order to gain awareness of the processing backlog becoming abnormal, it's possible to instrument the Async sink by suppling a `monitor` callback that allows for periodic inspection of the backlog
+
+```csharp
+    void LogBufferMonitor(buffer : BlockingQueue<Serilog.Events.LogEvent> queue)
+    {
+        var usagePct = queue.Count * 100 / queue.BoundedCapacity;
+        if (usagePct > 50) SelfLog.WriteLine("Log buffer exceeded {0:p0} usage (limit: {1})", usage, queue.BoundedCapacity);
+    }
+
+    // Wait for any queued event to be accepted by the `File` log before allowing the calling thread
+    // to resume its application work after a logging call when there are 10,000 LogEvents waiting
+    .WriteTo.Async(a => a.File("logs/myapp.log"), monitorIntervalSeconds: 60, monitor: LogBufferMonitor)
+```
+
 ### Blocking
 
 Warning: For the same reason one typically does not want exceptions from logging to leak into the execution path, one typically does not want a logger to be able to have the side-efect of actually interrupting application processing until the log propagation has been unblocked.

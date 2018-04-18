@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -184,6 +185,30 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.Equal(3, _innerSink.Events.Count);
             }
         }
+
+#if !NETSTANDARD_NO_TIMER
+        [Fact]
+        public void MonitorArgumentAffordsBacklogHealthMonitoringFacility()
+        {
+            bool logWasObservedToHaveReachedHalfFull = false;
+            void inspectBuffer(BlockingCollection<LogEvent> queue) =>
+
+                logWasObservedToHaveReachedHalfFull = logWasObservedToHaveReachedHalfFull
+                    || queue.Count * 100 / queue.BoundedCapacity >= 50;
+
+            var collector = new MemorySink { DelayEmit = TimeSpan.FromSeconds(3) };
+            using (var logger = new LoggerConfiguration()
+                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, monitorIntervalSeconds: 1, monitor: inspectBuffer)
+                .CreateLogger())
+            {
+                logger.Information("Something to block the pipe");
+                logger.Information("I'll just leave this here pending for a few seconds so I can observe it");
+                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(2));
+            }
+
+            Assert.True(logWasObservedToHaveReachedHalfFull);
+        }
+#endif
 
         private BackgroundWorkerSink CreateSinkWithDefaultOptions()
         {
