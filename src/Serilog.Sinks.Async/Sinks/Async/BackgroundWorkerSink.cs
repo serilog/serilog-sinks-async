@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
-using System.Threading.Tasks;
 
 namespace Serilog.Sinks.Async
 {
     sealed class BackgroundWorkerSink : ILogEventSink, IDisposable
     {
         readonly ILogEventSink _pipeline;
-        readonly int _bufferCapacity;
         readonly bool _blockWhenFull;
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
@@ -21,15 +20,14 @@ namespace Serilog.Sinks.Async
             if (pipeline == null) throw new ArgumentNullException(nameof(pipeline));
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
             _pipeline = pipeline;
-            _bufferCapacity = bufferCapacity;
             _blockWhenFull = blockWhenFull;
-            _queue = new BlockingCollection<LogEvent>(_bufferCapacity);
+            _queue = new BlockingCollection<LogEvent>(bufferCapacity);
             _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         public void Emit(LogEvent logEvent)
         {
-            if (this._queue.IsAddingCompleted)
+            if (_queue.IsAddingCompleted)
                 return;
 
             try
@@ -41,12 +39,12 @@ namespace Serilog.Sinks.Async
                 else
                 {
                     if (!_queue.TryAdd(logEvent))
-                        SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _bufferCapacity);
+                        SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _queue.BoundedCapacity);
                 }
             }
             catch (InvalidOperationException)
             {
-                // Thrown in the event of a race condition when we try to add another event after 
+                // Thrown in the event of a race condition when we try to add another event after
                 // CompleteAdding has been called
             }
         }
