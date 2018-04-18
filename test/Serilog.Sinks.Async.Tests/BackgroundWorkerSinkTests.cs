@@ -32,7 +32,7 @@ namespace Serilog.Sinks.Async.Tests
             {
             }
 
-            Assert.Equal(0, collector.Events.Count);
+            Assert.Empty(collector.Events);
         }
     }
 }

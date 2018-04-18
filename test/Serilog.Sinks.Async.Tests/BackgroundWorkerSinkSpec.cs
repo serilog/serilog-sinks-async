@@ -39,7 +39,7 @@ namespace Serilog.Sinks.Async.Tests
 
                 await Task.Delay(TimeSpan.FromSeconds(3));
 
-                Assert.Equal(1, _innerSink.Events.Count);
+                Assert.Single(_innerSink.Events);
             }
         }
 
@@ -88,7 +88,7 @@ namespace Serilog.Sinks.Async.Tests
         {
             using (var sink = new BackgroundWorkerSink(_logger, 1, false))
             {
-                // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity 
+                // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity
                 // after the first event is popped
                 _innerSink.DelayEmit = TimeSpan.FromMilliseconds(300);
 
@@ -109,7 +109,7 @@ namespace Serilog.Sinks.Async.Tests
                     Assert.True(sw.ElapsedMilliseconds < 200, "Should not block the caller when the queue is full");
                 });
 
-                // If we *weren't* dropped events, the delay in the inner sink would mean the 5 events would take 
+                // If we *weren't* dropped events, the delay in the inner sink would mean the 5 events would take
                 // at least 15 seconds to process
                 await Task.Delay(TimeSpan.FromSeconds(2));
 
@@ -123,7 +123,7 @@ namespace Serilog.Sinks.Async.Tests
         {
             using (var sink = new BackgroundWorkerSink(_logger, 1, true))
             {
-                // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity 
+                // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity
                 // after the first event is popped
                 _innerSink.DelayEmit = TimeSpan.FromMilliseconds(300);
 
@@ -141,7 +141,7 @@ namespace Serilog.Sinks.Async.Tests
                     sink.Emit(e);
                     sw.Stop();
 
-                    // Emit should return immediately the first time, since the queue is not yet full. On 
+                    // Emit should return immediately the first time, since the queue is not yet full. On
                     // subsequent calls, the queue should be full, so we should be blocked
                     if (i > 0)
                     {

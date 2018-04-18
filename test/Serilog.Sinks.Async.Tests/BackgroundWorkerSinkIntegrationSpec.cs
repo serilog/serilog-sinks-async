@@ -130,7 +130,7 @@ namespace Serilog.Sinks.Async.Tests
 
                 var result = RetrieveEvents(_memorySink, 1);
 
-                Assert.Equal(1, result.Count);
+                Assert.Single(result);
             }
 
             [Fact]
