@@ -84,44 +84,73 @@ namespace Serilog.Sinks.Async.Tests
         }
 
         [Fact]
-        public async Task WhenQueueFull_ThenDropsEvents()
+        public async Task GivenDefaultConfig_WhenQueueOverCapacity_DoesNotBlock()
         {
-            using (var sink = new BackgroundWorkerSink(_logger, 1, false))
+            var batchTiming = Stopwatch.StartNew();
+            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
             {
-                // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity
-                // after the first event is popped
-                _innerSink.DelayEmit = TimeSpan.FromMilliseconds(300);
-
-                var events = new List<LogEvent>
+                // Cause a delay when emmitting to the inner sink, allowing us to easily fill the queue to capacity
+                // while the first event is being propagated
+                var acceptInterval = TimeSpan.FromMilliseconds(500);
+                _innerSink.DelayEmit = acceptInterval;
+                var tenSecondsWorth = 10_000 / acceptInterval.TotalMilliseconds + 1;
+                for (int i = 0; i < tenSecondsWorth; i++)
                 {
-                    CreateEvent(),
-                    CreateEvent(),
-                    CreateEvent(),
-                    CreateEvent(),
-                    CreateEvent()
-                };
-                events.ForEach(e =>
+                    var emissionTiming = Stopwatch.StartNew();
+                    sink.Emit(CreateEvent());
+                    emissionTiming.Stop();
+
+                    // Should not block the caller when the queue is full
+                    Assert.InRange(emissionTiming.ElapsedMilliseconds, 0, 200);
+                }
+
+                // Allow at least one to propagate
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            }
+            // Sanity check the overall timing
+            batchTiming.Stop();
+            // Need to add a significant fudge factor as AppVeyor build can result in `await` taking quite some time
+            Assert.InRange(batchTiming.ElapsedMilliseconds, 950, 2050);
+        }
+
+        [Fact]
+        public async Task GivenDefaultConfig_WhenRequestsOverCapacity_ThenDropsEventsAndRecovers()
+        {
+            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
+            {
+                var acceptInterval = TimeSpan.FromMilliseconds(200);
+                _innerSink.DelayEmit = acceptInterval;
+
+                for (int i = 0; i < 2; i++)
                 {
-                    var sw = Stopwatch.StartNew();
-                    sink.Emit(e);
-                    sw.Stop();
+                    sink.Emit(CreateEvent());
+                    sink.Emit(CreateEvent());
+                    await Task.Delay(acceptInterval);
+                    sink.Emit(CreateEvent());
+                }
+                // Wait for the buffer and propagation to complete
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                // Now verify things are back to normal; emit an event...
+                var finalEvent = CreateEvent();
+                sink.Emit(finalEvent);
+                // ... give adequate time for it to be guaranteed to have percolated through
+                await Task.Delay(TimeSpan.FromSeconds(1));
 
-                    Assert.True(sw.ElapsedMilliseconds < 200, "Should not block the caller when the queue is full");
-                });
-
-                // If we *weren't* dropped events, the delay in the inner sink would mean the 5 events would take
-                // at least 15 seconds to process
-                await Task.Delay(TimeSpan.FromSeconds(2));
-
-                // Events should be dropped
-                Assert.Equal(2, _innerSink.Events.Count);
+                // At least one of the preceding events should not have made it through
+                var propagatedExcludingFinal =
+                    from e in _innerSink.Events
+                    where !Object.ReferenceEquals(finalEvent, e)
+                    select e;
+                Assert.InRange(2, 2 * 3 / 2 - 1, propagatedExcludingFinal.Count());
+                // Final event should have made it through
+                Assert.Contains(_innerSink.Events, x => Object.ReferenceEquals(finalEvent, x));
             }
         }
 
         [Fact]
-        public async Task WhenQueueFull_ThenBlocks()
+        public async Task GivenConfiguredToBlock_WhenQueueFilled_ThenBlocks()
         {
-            using (var sink = new BackgroundWorkerSink(_logger, 1, true))
+            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: true))
             {
                 // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity
                 // after the first event is popped
