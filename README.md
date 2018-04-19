@@ -12,11 +12,11 @@ Install from [NuGet](https://nuget.org/packages/serilog.sinks.async):
 Install-Package Serilog.Sinks.Async
 ```
 
-Assuming you have already installed the target sink, such as the rolling file sink, move the wrapped sink's configuration within a `WriteTo.Async()` statement:
+Assuming you have already installed the target sink, such as the file sink, move the wrapped sink's configuration within a `WriteTo.Async()` statement:
 
 ```csharp
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Async(a => a.RollingFile("logs/myapp-{Date}.txt"))
+    .WriteTo.Async(a => a.File("logs/myapp.log"))
     // Other logger configuration
     .CreateLogger()
     
@@ -26,7 +26,7 @@ Log.Information("This will be written to disk on the worker thread");
 Log.CloseAndFlush();
 ```
 
-The wrapped sink (`RollingFile` in this case) will be invoked on a worker thread while your application's thread gets on with more important stuff.
+The wrapped sink (`File` in this case) will be invoked on a worker thread while your application's thread gets on with more important stuff.
 
 Because the memory buffer may contain events that have not yet been written to the target sink, it is important to call `Log.CloseAndFlush()` or `Logger.Dispose()` when the application exits.
 
@@ -36,7 +36,19 @@ The default memory buffer feeding the worker thread is capped to 10,000 items, a
 
 ```csharp
     // Reduce the buffer to 500 events
-    .WriteTo.Async(a => a.RollingFile("logs/myapp-{Date}.txt"), 500)
+    .WriteTo.Async(a => a.File("logs/myapp.log"), bufferSize: 500)
+```
+
+### Blocking
+
+Warning: For the same reason one typically does not want exceptions from logging to leak into the execution path, one typically does not want a logger to be able to have the side-efect of actually interrupting application processing until the log propagation has been unblocked.
+
+When the buffer size limit is reached, the default behavior is to drop any further attempted writes until the queue abates, reporting each such failure to the `Serilog.Debugging.SelfLog`. To replace this with a blocking behaviour, set `blockWhenFull` to `true`.
+
+```csharp
+    // Wait for any queued event to be accepted by the `File` log before allowing the calling thread
+    // to resume its application work after a logging call when there are 10,000 LogEvents waiting
+    .WriteTo.Async(a => a.File("logs/myapp.log"), blockWhenFull: true)
 ```
 
 ### XML `<appSettings>` and JSON configuration
@@ -50,7 +62,7 @@ Using [Serilog.Settings.Configuration](https://github.com/serilog/serilog-settin
       "Name": "Async",
       "Args": {
         "configure": [{
-          "Name": "LiterateConsole"
+          "Name": "Console"
         }]
       }
     }]
