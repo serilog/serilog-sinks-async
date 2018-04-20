@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -85,12 +84,12 @@ namespace Serilog.Sinks.Async.Tests
         }
 
         [Fact]
-        public async Task GivenDefaultConfig_WhenQueueOverCapacity_DoesNotBlock()
+        public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_DoesNotBlock()
         {
             var batchTiming = Stopwatch.StartNew();
             using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
             {
-                // Cause a delay when emmitting to the inner sink, allowing us to easily fill the queue to capacity
+                // Cause a delay when emitting to the inner sink, allowing us to easily fill the queue to capacity
                 // while the first event is being propagated
                 var acceptInterval = TimeSpan.FromMilliseconds(500);
                 _innerSink.DelayEmit = acceptInterval;
@@ -115,7 +114,7 @@ namespace Serilog.Sinks.Async.Tests
         }
 
         [Fact]
-        public async Task GivenDefaultConfig_WhenRequestsOverCapacity_ThenDropsEventsAndRecovers()
+        public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_ThenDropsEventsAndRecovers()
         {
             using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
             {
@@ -186,29 +185,31 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-#if !NETSTANDARD_NO_TIMER
         [Fact]
-        public void MonitorArgumentAffordsBacklogHealthMonitoringFacility()
+        public async Task InspectorOutParameterAffordsHealthMonitoringHook()
         {
-            bool logWasObservedToHaveReachedHalfFull = false;
-            void inspectBuffer(BlockingCollection<LogEvent> queue) =>
-
-                logWasObservedToHaveReachedHalfFull = logWasObservedToHaveReachedHalfFull
-                    || queue.Count * 100 / queue.BoundedCapacity >= 50;
-
-            var collector = new MemorySink { DelayEmit = TimeSpan.FromSeconds(3) };
+            var collector = new MemorySink { DelayEmit = TimeSpan.FromSeconds(2) };
+            // 2 spaces in queue; 1 would make the second log entry eligible for dropping if consumer does not activate instantaneously
+            var bufferSize = 2;
             using (var logger = new LoggerConfiguration()
-                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, monitorIntervalSeconds: 1, monitor: inspectBuffer)
+                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, inspector: out IQueueState inspector)
                 .CreateLogger())
             {
-                logger.Information("Something to block the pipe");
-                logger.Information("I'll just leave this here pending for a few seconds so I can observe it");
-                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(2));
+                Assert.Equal(bufferSize, inspector.BufferSize);
+                Assert.Equal(0, inspector.Count);
+                logger.Information("Something to freeze the processing for 2s");
+                await Task.Delay(TimeSpan.FromMilliseconds(200));
+                // Can be taken from queue either instantanously or be awaiting consumer to take
+                Assert.InRange(inspector.Count, 0, 1);
+                logger.Information("Something that will sit in the queue");
+                // Unless we are put to sleep for a Rip Van Winkle period, either:
+                // a) the BackgroundWorker will be emitting the item [and incurring the 2s delay we established], leaving a single item in the buffer
+                // or b) neither will have been picked out of the buffer yet.
+                await Task.Delay(TimeSpan.FromMilliseconds(200));
+                Assert.InRange(inspector.Count, 1, 2);
+                Assert.Equal(bufferSize, inspector.BufferSize);
             }
-
-            Assert.True(logWasObservedToHaveReachedHalfFull);
         }
-#endif
 
         private BackgroundWorkerSink CreateSinkWithDefaultOptions()
         {

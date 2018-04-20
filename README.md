@@ -39,20 +39,25 @@ The default memory buffer feeding the worker thread is capped to 10,000 items, a
     .WriteTo.Async(a => a.File("logs/myapp.log"), bufferSize: 500)
 ```
 
-### Monitoring
+### Health Monitoring via the Buffer Inspection interface
 
-Typically, one should assign adequate buffer capacity to enable the wrapped sinks to ingest the events as they are processed without ever approaching the limit. In order to gain awareness of the processing backlog becoming abnormal, it's possible to instrument the Async sink by suppling a `monitor` callback that allows for periodic inspection of the backlog
+The Async wrapper is primarily intended to allow one to achieve minimal logging latency at all times, even when writing to sinks that may momentarily block during the course of their processing (e.g., a File sink might block for a low number of ms while flushing). The dropping behavior is an important failsafe in that it avoids having an unbounded buffering behaviour should logging frequency overwhelm the sink, or the sink ingestion throughput degrades to a major degree.
+
+In practice, this configuration (assuming one provisions an adequate `bufferSize`) achieves an efficient and resilient logging configuration that can handle load gracefully. The key risk is of course that events may be dropped when the buffer threshold gets breached. The `inspector` allows one to arrange for your Application's health monitoring mechanism to actively validate that the buffer allocation is not being exceeded in practice.
 
 ```csharp
-    void LogBufferMonitor(buffer : BlockingQueue<Serilog.Events.LogEvent> queue)
+    // Example check: log message to an out of band alarm channel if logging is showing signs of getting overwhelmed
+    void PeriodicMonitorCheck(IQueueState inspector)
     {
-        var usagePct = queue.Count * 100 / queue.BoundedCapacity;
-        if (usagePct > 50) SelfLog.WriteLine("Log buffer exceeded {0:p0} usage (limit: {1})", usage, queue.BoundedCapacity);
+        var usagePct = inspector.Count * 100 / inspector.BoundedCapacity;
+        if (usagePct > 50) SelfLog.WriteLine("Log buffer exceeded {0:p0} usage (limit: {1})", usagePct, inspector.BoundedCapacity);
     }
 
-    // Wait for any queued event to be accepted by the `File` log before allowing the calling thread
-    // to resume its application work after a logging call when there are 10,000 LogEvents waiting
-    .WriteTo.Async(a => a.File("logs/myapp.log"), monitorIntervalSeconds: 60, monitor: LogBufferMonitor)
+    // Allow a backlog of up to 10,000 items to be maintained (dropping extras if full)
+    .WriteTo.Async(a => a.File("logs/myapp.log"), inspector: out IQueueState inspector) ...
+
+    // Wire the inspector through to health monitoring and/or metrics in order to periodically emit a metric, raise an alarm, etc.
+    ... healthMonitoring.RegisterCheck(() => new PeriodicMonitorCheck(inspector));
 ```
 
 ### Blocking

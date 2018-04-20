@@ -5,7 +5,7 @@
     <AssemblyVersion>1.0.0</AssemblyVersion>
     <VersionPrefix>1.2.0</VersionPrefix>
     <Authors>Jezz Santos;Serilog Contributors</Authors>
-    <TargetFrameworks>net45;netstandard1.1;netstandard1.2</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.1</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Serilog.Sinks.Async</AssemblyName>
@@ -26,10 +26,6 @@
     <PackageReference Include="Serilog" Version="2.5.0" />
   </ItemGroup>
 
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' ">
-    <DefineConstants>$(DefineConstants);NETSTANDARD_NO_TIMER</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
@@ -37,11 +33,6 @@
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' ">
     <PackageReference Include="System.Collections.Concurrent" Version="4.0.12" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.2' ">
-    <PackageReference Include="System.Collections.Concurrent" Version="4.0.12" />
-    <PackageReference Include="System.Threading.Timer" Version="4.0.1" />
   </ItemGroup>
 
 </Project>
