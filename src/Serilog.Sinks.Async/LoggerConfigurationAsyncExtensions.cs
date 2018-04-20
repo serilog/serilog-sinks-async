@@ -99,6 +99,11 @@ namespace Serilog
         int Count { get; }
 
         /// <summary>
+        /// Accumulated number of messages dropped due to attempted submission having breached <see cref="BufferSize"/> limit.
+        /// </summary>
+        long DroppedMessagesCount { get; }
+
+        /// <summary>
         /// Maximum number of items permitted to be held in the buffer awaiting ingestion.
         /// </summary>
         /// <exception cref="T:System.ObjectDisposedException">The Sink has been disposed.</exception>

@@ -30,9 +30,9 @@ The wrapped sink (`File` in this case) will be invoked on a worker thread while 
 
 Because the memory buffer may contain events that have not yet been written to the target sink, it is important to call `Log.CloseAndFlush()` or `Logger.Dispose()` when the application exits.
 
-### Buffering
+### Buffering & Dropping
 
-The default memory buffer feeding the worker thread is capped to 10,000 items, after which arriving events will be dropped. To increase or decrease this limit, specify it when configuring the async sink.
+The default memory buffer feeding the worker thread is capped to 10,000 items, after which arriving events will be dropped. To increase or decrease this limit, specify it when configuring the async sink. One can determine whether events have been dropped via `IQueueState.DroppedMessagesCount` (see Buffer Inspection interface below).
 
 ```csharp
     // Reduce the buffer to 500 events

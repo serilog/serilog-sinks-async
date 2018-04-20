@@ -15,6 +15,8 @@ namespace Serilog.Sinks.Async
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
 
+        long _droppedMessages;
+
         public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull)
         {
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
@@ -38,7 +40,10 @@ namespace Serilog.Sinks.Async
                 else
                 {
                     if (!_queue.TryAdd(logEvent))
+                    {
+                        Interlocked.Increment(ref _droppedMessages);
                         SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _queue.BoundedCapacity);
+                    }
                 }
             }
             catch (InvalidOperationException)
@@ -77,5 +82,7 @@ namespace Serilog.Sinks.Async
         int IQueueState.Count => _queue.Count;
 
         int IQueueState.BufferSize => _queue.BoundedCapacity;
+
+        long IQueueState.DroppedMessagesCount => _droppedMessages;
     }
 }

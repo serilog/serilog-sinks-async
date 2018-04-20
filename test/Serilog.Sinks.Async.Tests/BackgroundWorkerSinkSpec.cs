@@ -106,6 +106,7 @@ namespace Serilog.Sinks.Async.Tests
 
                 // Allow at least one to propagate
                 await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                Assert.NotEqual(0, ((IQueueState)sink).DroppedMessagesCount);
             }
             // Sanity check the overall timing
             batchTiming.Stop();
@@ -144,6 +145,7 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.InRange(2, 2 * 3 / 2 - 1, propagatedExcludingFinal.Count());
                 // Final event should have made it through
                 Assert.Contains(_innerSink.Events, x => Object.ReferenceEquals(finalEvent, x));
+                Assert.NotEqual(0, ((IQueueState)sink).DroppedMessagesCount);
             }
         }
 
@@ -182,11 +184,12 @@ namespace Serilog.Sinks.Async.Tests
 
                 // No events should be dropped
                 Assert.Equal(3, _innerSink.Events.Count);
+                Assert.Equal(0, ((IQueueState)sink).DroppedMessagesCount);
             }
         }
 
         [Fact]
-        public async Task InspectorOutParameterAffordsHealthMonitoringHook()
+        public void InspectorOutParameterAffordsHealthMonitoringHook()
         {
             var collector = new MemorySink { DelayEmit = TimeSpan.FromSeconds(2) };
             // 2 spaces in queue; 1 would make the second log entry eligible for dropping if consumer does not activate instantaneously
@@ -197,17 +200,27 @@ namespace Serilog.Sinks.Async.Tests
             {
                 Assert.Equal(bufferSize, inspector.BufferSize);
                 Assert.Equal(0, inspector.Count);
+                Assert.Equal(0, inspector.DroppedMessagesCount);
                 logger.Information("Something to freeze the processing for 2s");
-                await Task.Delay(TimeSpan.FromMilliseconds(200));
                 // Can be taken from queue either instantanously or be awaiting consumer to take
                 Assert.InRange(inspector.Count, 0, 1);
+                Assert.Equal(0, inspector.DroppedMessagesCount);
                 logger.Information("Something that will sit in the queue");
+                Assert.InRange(inspector.Count, 1, 2);
+                logger.Information("Something that will probably also sit in the queue (but could get dropped if first message has still not been picked up)");
+                Assert.InRange(inspector.Count, 1, 2);
+                logger.Information("Something that will get dropped unless we get preempted for 2s during our execution");
+                const string droppedMessage = "Something that will definitely get dropped";
+                logger.Information(droppedMessage);
+                Assert.InRange(inspector.Count, 1, 2);
                 // Unless we are put to sleep for a Rip Van Winkle period, either:
                 // a) the BackgroundWorker will be emitting the item [and incurring the 2s delay we established], leaving a single item in the buffer
                 // or b) neither will have been picked out of the buffer yet.
-                await Task.Delay(TimeSpan.FromMilliseconds(200));
                 Assert.InRange(inspector.Count, 1, 2);
                 Assert.Equal(bufferSize, inspector.BufferSize);
+                Assert.DoesNotContain(collector.Events, x => x.MessageTemplate.Text == droppedMessage);
+                // Because messages wait 2 seconds, the only real way to get one into the buffer is with a debugger breakpoint or a sleep
+                Assert.InRange(collector.Events.Count, 0, 3);
             }
         }
 
