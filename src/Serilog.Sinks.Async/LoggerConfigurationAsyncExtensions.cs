@@ -67,12 +67,12 @@ namespace Serilog
         public static LoggerConfiguration Async(
             this LoggerSinkConfiguration loggerSinkConfiguration,
             Action<LoggerSinkConfiguration> configure,
-            out IQueueState inspector,
+            out IAsyncLogEventSinkState inspector,
             int bufferSize = 10000,
             bool blockWhenFull = false)
         {
             // Cannot assign directly to the out param from within the lambda, so we need a temp
-            IQueueState stateLens = null;
+            IAsyncLogEventSinkState stateLens = null;
             var result = LoggerSinkConfiguration.Wrap(
                 loggerSinkConfiguration,
                 wrappedSink =>
@@ -85,28 +85,5 @@ namespace Serilog
             inspector = stateLens;
             return result;
         }
-    }
-
-    /// <summary>
-    /// Provides a way to inspect the current state of Async wrapper's ingestion queue.
-    /// </summary>
-    public interface IQueueState
-    {
-        /// <summary>
-        /// Count of items currently awaiting ingestion.
-        /// </summary>
-        /// <exception cref="T:System.ObjectDisposedException">The Sink has been disposed.</exception>
-        int Count { get; }
-
-        /// <summary>
-        /// Accumulated number of messages dropped due to attempted submission having breached <see cref="BufferSize"/> limit.
-        /// </summary>
-        long DroppedMessagesCount { get; }
-
-        /// <summary>
-        /// Maximum number of items permitted to be held in the buffer awaiting ingestion.
-        /// </summary>
-        /// <exception cref="T:System.ObjectDisposedException">The Sink has been disposed.</exception>
-        int BufferSize { get; }
     }
 }

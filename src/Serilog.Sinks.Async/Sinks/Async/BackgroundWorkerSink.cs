@@ -8,7 +8,7 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.Async
 {
-    sealed class BackgroundWorkerSink : ILogEventSink, IQueueState, IDisposable
+    sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkState, IDisposable
     {
         readonly ILogEventSink _pipeline;
         readonly bool _blockWhenFull;
@@ -79,10 +79,10 @@ namespace Serilog.Sinks.Async
             }
         }
 
-        int IQueueState.Count => _queue.Count;
+        int IAsyncLogEventSinkState.BufferSize => _queue.BoundedCapacity;
 
-        int IQueueState.BufferSize => _queue.BoundedCapacity;
+        int IAsyncLogEventSinkState.Count => _queue.Count;
 
-        long IQueueState.DroppedMessagesCount => _droppedMessages;
+        long IAsyncLogEventSinkState.DroppedMessagesCount => _droppedMessages;
     }
 }

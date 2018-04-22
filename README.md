@@ -32,18 +32,18 @@ Because the memory buffer may contain events that have not yet been written to t
 
 ### Buffering & Dropping
 
-The default memory buffer feeding the worker thread is capped to 10,000 items, after which arriving events will be dropped. To increase or decrease this limit, specify it when configuring the async sink. One can determine whether events have been dropped via `IQueueState.DroppedMessagesCount` (see Buffer Inspection interface below).
+The default memory buffer feeding the worker thread is capped to 10,000 items, after which arriving events will be dropped. To increase or decrease this limit, specify it when configuring the async sink. One can determine whether events have been dropped via `Serilog.Async.IAsyncLogEventSinkState.DroppedMessagesCount` (see Sink State Inspection interface below).
 
 ```csharp
     // Reduce the buffer to 500 events
     .WriteTo.Async(a => a.File("logs/myapp.log"), bufferSize: 500)
 ```
 
-### Health Monitoring via the Buffer Inspection interface
+### Health Monitoring via the Sink State Inspection interface
 
-The Async wrapper is primarily intended to allow one to achieve minimal logging latency at all times, even when writing to sinks that may momentarily block during the course of their processing (e.g., a File sink might block for a low number of ms while flushing). The dropping behavior is an important failsafe in that it avoids having an unbounded buffering behaviour should logging frequency overwhelm the sink, or the sink ingestion throughput degrades to a major degree.
+The `Async` wrapper is primarily intended to allow one to achieve minimal logging latency at all times, even when writing to sinks that may momentarily block during the course of their processing (e.g., a `File` Sink might block for a low number of ms while flushing). The dropping behavior is an important failsafe; it avoids having an unbounded buffering behaviour should logging frequency overwhelm the sink, or the sink ingestion throughput degrade to a major degree.
 
-In practice, this configuration (assuming one provisions an adequate `bufferSize`) achieves an efficient and resilient logging configuration that can handle load gracefully. The key risk is of course that events may be dropped when the buffer threshold gets breached. The `inspector` allows one to arrange for your Application's health monitoring mechanism to actively validate that the buffer allocation is not being exceeded in practice.
+In practice, this configuration (assuming one provisions an adequate `bufferSize`) achieves an efficient and resilient logging configuration that can handle load safely. The key risk is of course that events get be dropped when the buffer threshold gets breached. The `inspector` allows one to arrange for your Application's health monitoring mechanism to actively validate that the buffer allocation is not being exceeded in practice.
 
 ```csharp
     // Example check: log message to an out of band alarm channel if logging is showing signs of getting overwhelmed
@@ -54,10 +54,10 @@ In practice, this configuration (assuming one provisions an adequate `bufferSize
     }
 
     // Allow a backlog of up to 10,000 items to be maintained (dropping extras if full)
-    .WriteTo.Async(a => a.File("logs/myapp.log"), inspector: out IQueueState inspector) ...
+    .WriteTo.Async(a => a.File("logs/myapp.log"), inspector: out Async.IAsyncLogEventSinkState inspector) ...
 
-    // Wire the inspector through to health monitoring and/or metrics in order to periodically emit a metric, raise an alarm, etc.
-    ... healthMonitoring.RegisterCheck(() => new PeriodicMonitorCheck(inspector));
+    // Wire the inspector through to application health monitoring and/or metrics in order to periodically emit a metric, raise an alarm, etc.
+    ... HealthMonitor.RegisterAsyncLogSink(inspector);
 ```
 
 ### Blocking

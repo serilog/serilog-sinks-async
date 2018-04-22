@@ -106,7 +106,7 @@ namespace Serilog.Sinks.Async.Tests
 
                 // Allow at least one to propagate
                 await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                Assert.NotEqual(0, ((IQueueState)sink).DroppedMessagesCount);
+                Assert.NotEqual(0, ((IAsyncLogEventSinkState)sink).DroppedMessagesCount);
             }
             // Sanity check the overall timing
             batchTiming.Stop();
@@ -145,7 +145,7 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.InRange(2, 2 * 3 / 2 - 1, propagatedExcludingFinal.Count());
                 // Final event should have made it through
                 Assert.Contains(_innerSink.Events, x => Object.ReferenceEquals(finalEvent, x));
-                Assert.NotEqual(0, ((IQueueState)sink).DroppedMessagesCount);
+                Assert.NotEqual(0, ((IAsyncLogEventSinkState)sink).DroppedMessagesCount);
             }
         }
 
@@ -184,7 +184,7 @@ namespace Serilog.Sinks.Async.Tests
 
                 // No events should be dropped
                 Assert.Equal(3, _innerSink.Events.Count);
-                Assert.Equal(0, ((IQueueState)sink).DroppedMessagesCount);
+                Assert.Equal(0, ((IAsyncLogEventSinkState)sink).DroppedMessagesCount);
             }
         }
 
@@ -195,7 +195,7 @@ namespace Serilog.Sinks.Async.Tests
             // 2 spaces in queue; 1 would make the second log entry eligible for dropping if consumer does not activate instantaneously
             var bufferSize = 2;
             using (var logger = new LoggerConfiguration()
-                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, inspector: out IQueueState inspector)
+                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, inspector: out IAsyncLogEventSinkState inspector)
                 .CreateLogger())
             {
                 Assert.Equal(bufferSize, inspector.BufferSize);
