@@ -25,7 +25,7 @@ namespace Serilog.Sinks.Async.Tests
         [Fact]
         public void WhenCtorWithNullSink_ThenThrows()
         {
-            Assert.Throws<ArgumentNullException>(() => new BackgroundWorkerSink(null, 10000, false));
+            Assert.Throws<ArgumentNullException>(() => new BackgroundWorkerSink(null, 10000, false, null));
         }
 
         [Fact]

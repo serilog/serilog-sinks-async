@@ -14,16 +14,18 @@ namespace Serilog.Sinks.Async
         readonly bool _blockWhenFull;
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
+        readonly IAsyncLogEventSinkMonitor _monitor;
 
         long _droppedMessages;
 
-        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull)
+        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor monitor = null)
         {
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
             _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
             _blockWhenFull = blockWhenFull;
             _queue = new BlockingCollection<LogEvent>(bufferCapacity);
             _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            _monitor = monitor;
         }
 
         public void Emit(LogEvent logEvent)
@@ -62,6 +64,8 @@ namespace Serilog.Sinks.Async
             _worker.Wait();
 
             (_pipeline as IDisposable)?.Dispose();
+
+            (_monitor as IDisposable)?.Dispose();
         }
 
         void Pump()
