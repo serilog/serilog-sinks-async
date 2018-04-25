@@ -8,21 +8,25 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.Async
 {
-    sealed class BackgroundWorkerSink : ILogEventSink, IDisposable
+    sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, IDisposable
     {
         readonly ILogEventSink _pipeline;
         readonly bool _blockWhenFull;
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
+        readonly IAsyncLogEventSinkMonitor _monitor;
 
-        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull)
+        long _droppedMessages;
+
+        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor monitor = null)
         {
-            if (pipeline == null) throw new ArgumentNullException(nameof(pipeline));
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
-            _pipeline = pipeline;
+            _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
             _blockWhenFull = blockWhenFull;
             _queue = new BlockingCollection<LogEvent>(bufferCapacity);
             _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            _monitor = monitor;
+            monitor?.StartMonitoring(this);
         }
 
         public void Emit(LogEvent logEvent)
@@ -39,7 +43,10 @@ namespace Serilog.Sinks.Async
                 else
                 {
                     if (!_queue.TryAdd(logEvent))
+                    {
+                        Interlocked.Increment(ref _droppedMessages);
                         SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _queue.BoundedCapacity);
+                    }
                 }
             }
             catch (InvalidOperationException)
@@ -55,9 +62,11 @@ namespace Serilog.Sinks.Async
             _queue.CompleteAdding();
 
             // Allow queued events to be flushed
-            _worker.Wait();      
-            
+            _worker.Wait();
+
             (_pipeline as IDisposable)?.Dispose();
+
+            _monitor?.StopMonitoring(this);
         }
 
         void Pump()
@@ -74,5 +83,11 @@ namespace Serilog.Sinks.Async
                 SelfLog.WriteLine("{0} fatal error in worker thread: {1}", typeof(BackgroundWorkerSink), ex);
             }
         }
+
+        int IAsyncLogEventSinkInspector.BufferSize => _queue.BoundedCapacity;
+
+        int IAsyncLogEventSinkInspector.Count => _queue.Count;
+
+        long IAsyncLogEventSinkInspector.DroppedMessagesCount => _droppedMessages;
     }
 }

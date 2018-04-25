@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Serilog.Core;
 using Serilog.Events;
@@ -25,7 +26,7 @@ namespace Serilog.Sinks.Async.Tests
         [Fact]
         public void WhenCtorWithNullSink_ThenThrows()
         {
-            Assert.Throws<ArgumentNullException>(() => new BackgroundWorkerSink(null, 10000, false));
+            Assert.Throws<ArgumentNullException>(() => new BackgroundWorkerSink(null, 10000, false, null));
         }
 
         [Fact]
@@ -84,12 +85,12 @@ namespace Serilog.Sinks.Async.Tests
         }
 
         [Fact]
-        public async Task GivenDefaultConfig_WhenQueueOverCapacity_DoesNotBlock()
+        public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_DoesNotBlock()
         {
             var batchTiming = Stopwatch.StartNew();
             using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
             {
-                // Cause a delay when emmitting to the inner sink, allowing us to easily fill the queue to capacity
+                // Cause a delay when emitting to the inner sink, allowing us to easily fill the queue to capacity
                 // while the first event is being propagated
                 var acceptInterval = TimeSpan.FromMilliseconds(500);
                 _innerSink.DelayEmit = acceptInterval;
@@ -106,6 +107,7 @@ namespace Serilog.Sinks.Async.Tests
 
                 // Allow at least one to propagate
                 await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                Assert.NotEqual(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
             }
             // Sanity check the overall timing
             batchTiming.Stop();
@@ -114,7 +116,7 @@ namespace Serilog.Sinks.Async.Tests
         }
 
         [Fact]
-        public async Task GivenDefaultConfig_WhenRequestsOverCapacity_ThenDropsEventsAndRecovers()
+        public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_ThenDropsEventsAndRecovers()
         {
             using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
             {
@@ -144,6 +146,7 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.InRange(2, 2 * 3 / 2 - 1, propagatedExcludingFinal.Count());
                 // Final event should have made it through
                 Assert.Contains(_innerSink.Events, x => Object.ReferenceEquals(finalEvent, x));
+                Assert.NotEqual(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
             }
         }
 
@@ -182,7 +185,49 @@ namespace Serilog.Sinks.Async.Tests
 
                 // No events should be dropped
                 Assert.Equal(3, _innerSink.Events.Count);
+                Assert.Equal(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
             }
+        }
+
+        [Fact]
+        public void MonitorParameterAffordsSinkInspectorSuitableForHealthChecking()
+        {
+            var collector = new MemorySink { DelayEmit = TimeSpan.FromSeconds(2) };
+            // 2 spaces in queue; 1 would make the second log entry eligible for dropping if consumer does not activate instantaneously
+            var bufferSize = 2;
+            var monitor = new DummyMonitor();
+            using (var logger = new LoggerConfiguration()
+                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, monitor: monitor)
+                .CreateLogger())
+            {
+                // Construction of BackgroundWorkerSink triggers StartMonitoring
+                var inspector = monitor.Inspector;
+                Assert.Equal(bufferSize, inspector.BufferSize);
+                Assert.Equal(0, inspector.Count);
+                Assert.Equal(0, inspector.DroppedMessagesCount);
+                logger.Information("Something to freeze the processing for 2s");
+                // Can be taken from queue either instantanously or be awaiting consumer to take
+                Assert.InRange(inspector.Count, 0, 1);
+                Assert.Equal(0, inspector.DroppedMessagesCount);
+                logger.Information("Something that will sit in the queue");
+                Assert.InRange(inspector.Count, 1, 2);
+                logger.Information("Something that will probably also sit in the queue (but could get dropped if first message has still not been picked up)");
+                Assert.InRange(inspector.Count, 1, 2);
+                logger.Information("Something that will get dropped unless we get preempted for 2s during our execution");
+                const string droppedMessage = "Something that will definitely get dropped";
+                logger.Information(droppedMessage);
+                Assert.InRange(inspector.Count, 1, 2);
+                // Unless we are put to sleep for a Rip Van Winkle period, either:
+                // a) the BackgroundWorker will be emitting the item [and incurring the 2s delay we established], leaving a single item in the buffer
+                // or b) neither will have been picked out of the buffer yet.
+                Assert.InRange(inspector.Count, 1, 2);
+                Assert.Equal(bufferSize, inspector.BufferSize);
+                Assert.DoesNotContain(collector.Events, x => x.MessageTemplate.Text == droppedMessage);
+                // Because messages wait 2 seconds, the only real way to get one into the buffer is with a debugger breakpoint or a sleep
+                Assert.InRange(collector.Events.Count, 0, 3);
+            }
+            // Dispose should trigger a StopMonitoring call
+            Assert.Null(monitor.Inspector);
         }
 
         private BackgroundWorkerSink CreateSinkWithDefaultOptions()
