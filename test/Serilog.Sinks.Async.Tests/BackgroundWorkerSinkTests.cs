@@ -34,5 +34,21 @@ namespace Serilog.Sinks.Async.Tests
 
             Assert.Empty(collector.Events);
         }
+
+        [Fact]
+        public void CtorAndDisposeInformMonitor()
+        {
+            var collector = new MemorySink();
+            var monitor = new DummyMonitor();
+
+            using (new LoggerConfiguration()
+                .WriteTo.Async(w => w.Sink(collector), monitor: monitor)
+                .CreateLogger())
+            {
+                Assert.NotNull(monitor.Inspector);
+            }
+
+            Assert.Null(monitor.Inspector);
+        }
     }
 }

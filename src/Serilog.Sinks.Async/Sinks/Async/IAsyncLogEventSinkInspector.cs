@@ -1,9 +1,9 @@
 ﻿namespace Serilog.Sinks.Async
 {
     /// <summary>
-    /// Provides a way to monitor the state of Async wrapper's ingestion queue.
+    /// Provides a way to inspect the state of Async wrapper's ingestion queue.
     /// </summary>
-    public interface IAsyncLogEventSinkState
+    public interface IAsyncLogEventSinkInspector
     {
         /// <summary>
         /// Configured maximum number of items permitted to be held in the buffer awaiting ingestion.
@@ -18,7 +18,7 @@
         int Count { get; }
 
         /// <summary>
-        /// Accumulated number of messages dropped due to breach of <see cref="BufferSize"/> limit.
+        /// Accumulated number of messages dropped due to breaches of <see cref="BufferSize"/> limit.
         /// </summary>
         long DroppedMessagesCount { get; }
     }

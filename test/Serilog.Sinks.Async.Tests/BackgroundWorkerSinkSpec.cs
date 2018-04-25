@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Serilog.Core;
 using Serilog.Events;
@@ -106,7 +107,7 @@ namespace Serilog.Sinks.Async.Tests
 
                 // Allow at least one to propagate
                 await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                Assert.NotEqual(0, ((IAsyncLogEventSinkState)sink).DroppedMessagesCount);
+                Assert.NotEqual(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
             }
             // Sanity check the overall timing
             batchTiming.Stop();
@@ -145,7 +146,7 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.InRange(2, 2 * 3 / 2 - 1, propagatedExcludingFinal.Count());
                 // Final event should have made it through
                 Assert.Contains(_innerSink.Events, x => Object.ReferenceEquals(finalEvent, x));
-                Assert.NotEqual(0, ((IAsyncLogEventSinkState)sink).DroppedMessagesCount);
+                Assert.NotEqual(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
             }
         }
 
@@ -184,20 +185,23 @@ namespace Serilog.Sinks.Async.Tests
 
                 // No events should be dropped
                 Assert.Equal(3, _innerSink.Events.Count);
-                Assert.Equal(0, ((IAsyncLogEventSinkState)sink).DroppedMessagesCount);
+                Assert.Equal(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
             }
         }
 
         [Fact]
-        public void InspectorOutParameterAffordsHealthMonitoringHook()
+        public void MonitorParameterAffordsSinkInspectorSuitableForHealthChecking()
         {
             var collector = new MemorySink { DelayEmit = TimeSpan.FromSeconds(2) };
             // 2 spaces in queue; 1 would make the second log entry eligible for dropping if consumer does not activate instantaneously
             var bufferSize = 2;
+            var monitor = new DummyMonitor();
             using (var logger = new LoggerConfiguration()
-                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, inspector: out IAsyncLogEventSinkState inspector)
+                .WriteTo.Async(w => w.Sink(collector), bufferSize: 2, monitor: monitor)
                 .CreateLogger())
             {
+                // Construction of BackgroundWorkerSink triggers StartMonitoring
+                var inspector = monitor.Inspector;
                 Assert.Equal(bufferSize, inspector.BufferSize);
                 Assert.Equal(0, inspector.Count);
                 Assert.Equal(0, inspector.DroppedMessagesCount);
@@ -222,6 +226,8 @@ namespace Serilog.Sinks.Async.Tests
                 // Because messages wait 2 seconds, the only real way to get one into the buffer is with a debugger breakpoint or a sleep
                 Assert.InRange(collector.Events.Count, 0, 3);
             }
+            // Dispose should trigger a StopMonitoring call
+            Assert.Null(monitor.Inspector);
         }
 
         private BackgroundWorkerSink CreateSinkWithDefaultOptions()

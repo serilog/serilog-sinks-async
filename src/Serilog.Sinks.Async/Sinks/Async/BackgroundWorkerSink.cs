@@ -8,7 +8,7 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.Async
 {
-    sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkState, IDisposable
+    sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, IDisposable
     {
         readonly ILogEventSink _pipeline;
         readonly bool _blockWhenFull;
@@ -26,6 +26,7 @@ namespace Serilog.Sinks.Async
             _queue = new BlockingCollection<LogEvent>(bufferCapacity);
             _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
             _monitor = monitor;
+            monitor?.StartMonitoring(this);
         }
 
         public void Emit(LogEvent logEvent)
@@ -65,7 +66,7 @@ namespace Serilog.Sinks.Async
 
             (_pipeline as IDisposable)?.Dispose();
 
-            (_monitor as IDisposable)?.Dispose();
+            _monitor?.StopMonitoring(this);
         }
 
         void Pump()
@@ -83,10 +84,10 @@ namespace Serilog.Sinks.Async
             }
         }
 
-        int IAsyncLogEventSinkState.BufferSize => _queue.BoundedCapacity;
+        int IAsyncLogEventSinkInspector.BufferSize => _queue.BoundedCapacity;
 
-        int IAsyncLogEventSinkState.Count => _queue.Count;
+        int IAsyncLogEventSinkInspector.Count => _queue.Count;
 
-        long IAsyncLogEventSinkState.DroppedMessagesCount => _droppedMessages;
+        long IAsyncLogEventSinkInspector.DroppedMessagesCount => _droppedMessages;
     }
 }
