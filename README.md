@@ -2,7 +2,7 @@
 
 An asynchronous wrapper for other [Serilog](https://serilog.net) sinks. Use this sink to reduce the overhead of logging calls by delegating work to a background thread. This is especially suited to non-batching sinks like the [File](https://github.com/serilog/serilog-sinks-file) and [RollingFile](https://github.com/serilog/serilog-sinks-rollingfile) sinks that may be affected by I/O bottlenecks.
 
-**Note:** many of the network-based sinks (_CouchDB_, _Elasticsearch_, _MongoDB_, _Seq_, _Splunk_...) already perform asychronous batching natively and do not benefit from this wrapper.
+**Note:** many of the network-based sinks (_CouchDB_, _Elasticsearch_, _MongoDB_, _Seq_, _Splunk_...) already perform asynchronous batching natively and do not benefit from this wrapper.
 
 ### Getting started
 
