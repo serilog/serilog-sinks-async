@@ -1,9 +1,4 @@
-﻿using System;
-using System.Threading;
-using Serilog.Core;
-using Serilog.Events;
-using Serilog.Parsing;
-using Serilog.Sinks.Async.Tests.Support;
+﻿using Serilog.Sinks.Async.Tests.Support;
 using Xunit;
 
 namespace Serilog.Sinks.Async.Tests
@@ -37,7 +32,23 @@ namespace Serilog.Sinks.Async.Tests
             {
             }
 
-            Assert.Equal(0, collector.Events.Count);
+            Assert.Empty(collector.Events);
+        }
+
+        [Fact]
+        public void CtorAndDisposeInformMonitor()
+        {
+            var collector = new MemorySink();
+            var monitor = new DummyMonitor();
+
+            using (new LoggerConfiguration()
+                .WriteTo.Async(w => w.Sink(collector), monitor: monitor)
+                .CreateLogger())
+            {
+                Assert.NotNull(monitor.Inspector);
+            }
+
+            Assert.Null(monitor.Inspector);
         }
     }
 }

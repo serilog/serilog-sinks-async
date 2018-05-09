@@ -9,7 +9,7 @@ foreach ($test in ls test/*.PerformanceTests) {
 
 	echo "bench: Benchmarking project in $test"
 
-    & dotnet test -c Release --framework net4.5.2
+    & dotnet test -c Release --framework net46
     if($LASTEXITCODE -ne 0) { exit 3 }
 
     Pop-Location
