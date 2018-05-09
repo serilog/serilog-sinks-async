@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>Asynchronous sink wrapper for Serilog.</Description>
     <AssemblyVersion>1.0.0</AssemblyVersion>
-    <VersionPrefix>1.2.0</VersionPrefix>
+    <VersionPrefix>1.2.1</VersionPrefix>
     <Authors>Jezz Santos;Serilog Contributors</Authors>
     <TargetFrameworks>net45;netstandard1.1</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
