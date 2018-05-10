@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using Serilog.Configuration;
+using Serilog.Events;
 using Serilog.Sinks.Async;
 
 namespace Serilog
@@ -68,10 +69,14 @@ namespace Serilog
             int bufferSize = 10000,
             bool blockWhenFull = false)
         {
-            return LoggerSinkConfiguration.Wrap(
-                loggerSinkConfiguration,
-                wrappedSink => new BackgroundWorkerSink(wrappedSink, bufferSize, blockWhenFull, monitor),
-                configure);
+            var sublogger = new LoggerConfiguration();
+            sublogger.MinimumLevel.Is(LevelAlias.Minimum);
+
+            configure(sublogger.WriteTo);
+
+            var wrapper = new BackgroundWorkerSink(sublogger.CreateLogger(), bufferSize, blockWhenFull, monitor);
+
+            return loggerSinkConfiguration.Sink(wrapper);
         }
     }
 }
