@@ -10,7 +10,7 @@ namespace Serilog.Sinks.Async
 {
     sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, IDisposable
     {
-        readonly ILogEventSink _pipeline;
+        readonly Logger _pipeline;
         readonly bool _blockWhenFull;
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
@@ -18,7 +18,7 @@ namespace Serilog.Sinks.Async
 
         long _droppedMessages;
 
-        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor monitor = null)
+        public BackgroundWorkerSink(Logger pipeline, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor monitor = null)
         {
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
             _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
@@ -64,7 +64,7 @@ namespace Serilog.Sinks.Async
             // Allow queued events to be flushed
             _worker.Wait();
 
-            (_pipeline as IDisposable)?.Dispose();
+            _pipeline.Dispose();
 
             _monitor?.StopMonitoring(this);
         }
@@ -75,7 +75,7 @@ namespace Serilog.Sinks.Async
             {
                 foreach (var next in _queue.GetConsumingEnumerable())
                 {
-                    _pipeline.Emit(next);
+                    _pipeline.Write(next);
                 }
             }
             catch (Exception ex)
