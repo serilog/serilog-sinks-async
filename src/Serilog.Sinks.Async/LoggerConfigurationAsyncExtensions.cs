@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using Serilog.Configuration;
 using Serilog.Sinks.Async;
+using Serilog.Events;
 
 namespace Serilog
 {
@@ -71,7 +72,9 @@ namespace Serilog
             return LoggerSinkConfiguration.Wrap(
                 loggerSinkConfiguration,
                 wrappedSink => new BackgroundWorkerSink(wrappedSink, bufferSize, blockWhenFull, monitor),
-                configure);
+                configure,
+                LevelAlias.Minimum,
+                null);
         }
     }
 }
