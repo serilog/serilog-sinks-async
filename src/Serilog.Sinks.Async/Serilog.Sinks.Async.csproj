@@ -35,8 +35,4 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.1' ">
-    <PackageReference Include="System.Collections.Concurrent" Version="4.3.0" />
-  </ItemGroup>
-
 </Project>
