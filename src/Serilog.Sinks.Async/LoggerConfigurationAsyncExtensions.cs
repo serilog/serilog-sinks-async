@@ -1,8 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
 using Serilog.Configuration;
-using Serilog.Sinks.Async;
 using Serilog.Events;
+using Serilog.Sinks.Async;
 
 namespace Serilog
 {
@@ -26,7 +26,7 @@ namespace Serilog
             Action<LoggerSinkConfiguration> configure,
             int bufferSize)
         {
-            return loggerSinkConfiguration.Async(configure, bufferSize, false);
+            return loggerSinkConfiguration.Async(configure, bufferSize, false, false);
         }
 
         /// <summary>
@@ -39,14 +39,16 @@ namespace Serilog
         /// <paramref name="blockWhenFull"/> the queue will block or subsequent events will be dropped until
         /// room is made in the queue.</param>
         /// <param name="blockWhenFull">Block when the queue is full, instead of dropping events.</param>
+        /// <param name="flushOnFatal">Flush all events when a <see cref="LogEventLevel.Fatal"/> event is emitted.</param>
         /// <returns>A <see cref="LoggerConfiguration"/> allowing configuration to continue.</returns>
         public static LoggerConfiguration Async(
             this LoggerSinkConfiguration loggerSinkConfiguration,
             Action<LoggerSinkConfiguration> configure,
             int bufferSize = 10000,
-            bool blockWhenFull = false)
+            bool blockWhenFull = false,
+            bool flushOnFatal = false)
         {
-            return loggerSinkConfiguration.Async(configure, null, bufferSize, blockWhenFull);
+            return loggerSinkConfiguration.Async(configure, null, bufferSize, blockWhenFull, flushOnFatal);
         }
 
         /// <summary>
@@ -60,6 +62,7 @@ namespace Serilog
         /// <paramref name="blockWhenFull"/> the queue will block or subsequent events will be dropped until
         /// room is made in the queue.</param>
         /// <param name="blockWhenFull">Block when the queue is full, instead of dropping events.</param>
+        /// <param name="flushOnFatal">Flush all events when a <see cref="LogEventLevel.Fatal"/> event is emitted.</param>
         /// <param name="monitor">Monitor to supply buffer information to.</param>
         /// <returns>A <see cref="LoggerConfiguration"/> allowing configuration to continue.</returns>
         public static LoggerConfiguration Async(
@@ -67,11 +70,12 @@ namespace Serilog
             Action<LoggerSinkConfiguration> configure,
             IAsyncLogEventSinkMonitor monitor,
             int bufferSize = 10000,
-            bool blockWhenFull = false)
+            bool blockWhenFull = false,
+            bool flushOnFatal = false)
         {
             return LoggerSinkConfiguration.Wrap(
                 loggerSinkConfiguration,
-                wrappedSink => new BackgroundWorkerSink(wrappedSink, bufferSize, blockWhenFull, monitor),
+                wrappedSink => new BackgroundWorkerSink(wrappedSink, bufferSize, blockWhenFull, flushOnFatal, monitor),
                 configure,
                 LevelAlias.Minimum,
                 null);

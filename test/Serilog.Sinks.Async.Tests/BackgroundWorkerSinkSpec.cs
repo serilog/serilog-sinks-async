@@ -26,7 +26,7 @@ namespace Serilog.Sinks.Async.Tests
         [Fact]
         public void WhenCtorWithNullSink_ThenThrows()
         {
-            Assert.Throws<ArgumentNullException>(() => new BackgroundWorkerSink(null, 10000, false, null));
+            Assert.Throws<ArgumentNullException>(() => new BackgroundWorkerSink(null, 10000, false, false, null));
         }
 
         [Fact]
@@ -88,7 +88,7 @@ namespace Serilog.Sinks.Async.Tests
         public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_DoesNotBlock()
         {
             var batchTiming = Stopwatch.StartNew();
-            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
+            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/, flushOnFatal: false /*default*/))
             {
                 // Cause a delay when emitting to the inner sink, allowing us to easily fill the queue to capacity
                 // while the first event is being propagated
@@ -116,9 +116,40 @@ namespace Serilog.Sinks.Async.Tests
         }
 
         [Fact]
+        public async Task GivenDefaultConfig_WhenFatalEmitted_DoesNotFlush()
+        {
+            var batchTiming = Stopwatch.StartNew();
+            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/, flushOnFatal: false /*default*/))
+            {
+                // Cause a delay when emitting to the inner sink, allowing us to easily fill the queue to capacity
+                // while the first event is being propagated
+                var acceptInterval = TimeSpan.FromMilliseconds(500);
+                _innerSink.DelayEmit = acceptInterval;
+                var tenSecondsWorth = 10_000 / acceptInterval.TotalMilliseconds + 1;
+                for (int i = 0; i < tenSecondsWorth; i++)
+                {
+                    var emissionTiming = Stopwatch.StartNew();
+                    sink.Emit(CreateEvent(LogEventLevel.Fatal));
+                    emissionTiming.Stop();
+
+                    // Should not block the caller when the queue is full
+                    Assert.InRange(emissionTiming.ElapsedMilliseconds, 0, 200);
+                }
+
+                // Allow at least one to propagate
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                Assert.NotEqual(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
+            }
+            // Sanity check the overall timing
+            batchTiming.Stop();
+            // Need to add a significant fudge factor as AppVeyor build can result in `await` taking quite some time
+            Assert.InRange(batchTiming.ElapsedMilliseconds, 950, 2050);
+        }
+
+        [Fact]
         public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_ThenDropsEventsAndRecovers()
         {
-            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
+            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/, flushOnFatal: false /*default*/))
             {
                 var acceptInterval = TimeSpan.FromMilliseconds(200);
                 _innerSink.DelayEmit = acceptInterval;
@@ -153,9 +184,9 @@ namespace Serilog.Sinks.Async.Tests
         [Fact]
         public async Task GivenConfiguredToBlock_WhenQueueFilled_ThenBlocks()
         {
-            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: true))
+            using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: true, flushOnFatal: false))
             {
-                // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity
+                // Cause a delay when emitting to the inner sink, allowing us to fill the queue to capacity
                 // after the first event is popped
                 _innerSink.DelayEmit = TimeSpan.FromMilliseconds(300);
 
@@ -186,6 +217,30 @@ namespace Serilog.Sinks.Async.Tests
                 // No events should be dropped
                 Assert.Equal(3, _innerSink.Events.Count);
                 Assert.Equal(0, ((IAsyncLogEventSinkInspector)sink).DroppedMessagesCount);
+            }
+        }
+
+        [Fact]
+        public async Task GivenConfiguredToFlush_WhenQueueFilled_ThenFlushes()
+        {
+            using (var sink = new BackgroundWorkerSink(_logger, 3, blockWhenFull: false, flushOnFatal: true))
+            {
+                // Cause a delay when emitting to the inner sink, allowing us to queue events
+                _innerSink.DelayEmit = TimeSpan.FromMilliseconds(100);
+
+                var events = new List<LogEvent>
+                {
+                    CreateEvent(LogEventLevel.Debug),
+                    CreateEvent(LogEventLevel.Verbose),
+                    CreateEvent(LogEventLevel.Fatal)
+                };
+
+                events.ForEach(e =>sink.Emit(e));
+
+                await Task.Delay(TimeSpan.FromSeconds(100));
+
+                // All events should be flushed
+                Assert.Equal(3, _innerSink.Events.Count);
             }
         }
 
@@ -232,12 +287,12 @@ namespace Serilog.Sinks.Async.Tests
 
         private BackgroundWorkerSink CreateSinkWithDefaultOptions()
         {
-            return new BackgroundWorkerSink(_logger, 10000, false);
+            return new BackgroundWorkerSink(_logger, 10000, false, false);
         }
 
-        private static LogEvent CreateEvent()
+        private static LogEvent CreateEvent(LogEventLevel level = LogEventLevel.Error)
         {
-            return new LogEvent(DateTimeOffset.MaxValue, LogEventLevel.Error, null,
+            return new LogEvent(DateTimeOffset.MaxValue, level, null,
                 new MessageTemplate("amessage", Enumerable.Empty<MessageTemplateToken>()),
                 Enumerable.Empty<LogEventProperty>());
         }

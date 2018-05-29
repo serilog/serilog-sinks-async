@@ -12,17 +12,19 @@ namespace Serilog.Sinks.Async
     {
         readonly ILogEventSink _pipeline;
         readonly bool _blockWhenFull;
+        readonly bool _flushOnFatal;
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
         readonly IAsyncLogEventSinkMonitor _monitor;
 
         long _droppedMessages;
 
-        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor monitor = null)
+        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull, bool flushOnFatal, IAsyncLogEventSinkMonitor monitor = null)
         {
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
             _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
             _blockWhenFull = blockWhenFull;
+            _flushOnFatal = flushOnFatal;
             _queue = new BlockingCollection<LogEvent>(bufferCapacity);
             _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
             _monitor = monitor;
@@ -39,6 +41,17 @@ namespace Serilog.Sinks.Async
                 if (_blockWhenFull)
                 {
                     _queue.Add(logEvent);
+
+                    if (logEvent.Level == LogEventLevel.Fatal)
+                    {
+                        SpinWait.SpinUntil(() => _queue.Count == 0);
+                    }
+                }
+                else if (_flushOnFatal && logEvent.Level == LogEventLevel.Fatal)
+                {
+                    _queue.Add(logEvent);
+
+                    SpinWait.SpinUntil(() => _queue.Count == 0 || _queue.IsAddingCompleted);
                 }
                 else
                 {
