@@ -2,10 +2,10 @@
 
   <PropertyGroup>
     <Description>Asynchronous sink wrapper for Serilog.</Description>
-    <AssemblyVersion>1.3.1.0</AssemblyVersion>
-    <VersionPrefix>1.3.1</VersionPrefix>
+    <AssemblyVersion>1.4.0.0</AssemblyVersion>
+    <VersionPrefix>1.4.0</VersionPrefix>
     <Authors>Jezz Santos;Serilog Contributors</Authors>
-    <TargetFrameworks>net45;netstandard1.1</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.1;net461;netstandard2.0</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Serilog.Sinks.Async</AssemblyName>
@@ -15,24 +15,24 @@
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
     <PackageId>Serilog.Sinks.Async</PackageId>
     <PackageTags>serilog;async</PackageTags>
-    <PackageIconUrl>http://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
+    <PackageIconUrl>https://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
     <PackageProjectUrl>https://serilog.net</PackageProjectUrl>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageLicense>Apache-2.0</PackageLicense>
     <RepositoryUrl>https://github.com/serilog/serilog-sinks-async</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' Or '$(TargetFramework)' == 'net461' ">
     <!-- Don't reference the full NETStandard.Library -->
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="Serilog" Version="2.7.1" />
+    <PackageReference Include="Serilog" Version="2.8.0" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' Or '$(TargetFramework)' == 'net461' ">
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
