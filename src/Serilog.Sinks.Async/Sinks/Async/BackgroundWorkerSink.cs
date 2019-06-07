@@ -10,7 +10,7 @@ namespace Serilog.Sinks.Async
 {
     sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, IDisposable
     {
-        readonly ILogEventSink _pipeline;
+        readonly ILogEventSink _wrappedSink;
         readonly bool _blockWhenFull;
         readonly BlockingCollection<LogEvent> _queue;
         readonly Task _worker;
@@ -18,10 +18,10 @@ namespace Serilog.Sinks.Async
 
         long _droppedMessages;
 
-        public BackgroundWorkerSink(ILogEventSink pipeline, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor monitor = null)
+        public BackgroundWorkerSink(ILogEventSink wrappedSink, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor monitor = null)
         {
             if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
-            _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
+            _wrappedSink = wrappedSink ?? throw new ArgumentNullException(nameof(wrappedSink));
             _blockWhenFull = blockWhenFull;
             _queue = new BlockingCollection<LogEvent>(bufferCapacity);
             _worker = Task.Factory.StartNew(Pump, CancellationToken.None, TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
@@ -64,7 +64,7 @@ namespace Serilog.Sinks.Async
             // Allow queued events to be flushed
             _worker.Wait();
 
-            (_pipeline as IDisposable)?.Dispose();
+            (_wrappedSink as IDisposable)?.Dispose();
 
             _monitor?.StopMonitoring(this);
         }
@@ -75,12 +75,19 @@ namespace Serilog.Sinks.Async
             {
                 foreach (var next in _queue.GetConsumingEnumerable())
                 {
-                    _pipeline.Emit(next);
+                    try
+                    {
+                        _wrappedSink.Emit(next);
+                    }
+                    catch (Exception ex)
+                    {
+                        SelfLog.WriteLine("{0} failed to emit event to wrapped sink: {1}", typeof(BackgroundWorkerSink), ex);
+                    }
                 }
             }
-            catch (Exception ex)
+            catch (Exception fatal)
             {
-                SelfLog.WriteLine("{0} fatal error in worker thread: {1}", typeof(BackgroundWorkerSink), ex);
+                SelfLog.WriteLine("{0} fatal error in worker thread: {1}", typeof(BackgroundWorkerSink), fatal);
             }
         }
 
