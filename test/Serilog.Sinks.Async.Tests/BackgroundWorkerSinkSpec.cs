@@ -230,12 +230,12 @@ namespace Serilog.Sinks.Async.Tests
             Assert.Null(monitor.Inspector);
         }
 
-        private BackgroundWorkerSink CreateSinkWithDefaultOptions()
+        BackgroundWorkerSink CreateSinkWithDefaultOptions()
         {
             return new BackgroundWorkerSink(_logger, 10000, false);
         }
 
-        private static LogEvent CreateEvent()
+        static LogEvent CreateEvent()
         {
             return new LogEvent(DateTimeOffset.MaxValue, LogEventLevel.Error, null,
                 new MessageTemplate("amessage", Enumerable.Empty<MessageTemplateToken>()),

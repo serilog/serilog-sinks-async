@@ -8,20 +8,20 @@ namespace Serilog.Sinks.Async.PerformanceTests
 {
     public class ThroughputBenchmark
     {
-        private const int Count = 10000;
+        const int Count = 10000;
 
-        private readonly LogEvent _evt = new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null,
+        readonly LogEvent _evt = new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null,
             new MessageTemplate(new[] {new TextToken("Hello")}), new LogEventProperty[0]);
 
-        private readonly SignallingSink _signal;
-        private Logger _syncLogger, _asyncLogger;
+        readonly SignallingSink _signal;
+        Logger _syncLogger, _asyncLogger;
 
         public ThroughputBenchmark()
         {
             _signal = new SignallingSink(Count);
         }
 
-        [Setup]
+        [GlobalSetup]
         public void Reset()
         {
             _syncLogger?.Dispose();

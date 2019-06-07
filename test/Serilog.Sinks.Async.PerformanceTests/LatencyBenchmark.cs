@@ -11,17 +11,17 @@ namespace Serilog.Sinks.Async.PerformanceTests
 {
     public class LatencyBenchmark
     {
-        private readonly LogEvent _evt = new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null,
+        readonly LogEvent _evt = new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null,
             new MessageTemplate(new[] {new TextToken("Hello")}), new LogEventProperty[0]);
 
-        private Logger _syncLogger, _asyncLogger, _fileLogger, _asyncFileLogger;
+        Logger _syncLogger, _asyncLogger, _fileLogger, _asyncFileLogger;
 
         static LatencyBenchmark()
         {
             SelfLog.Enable(new TerminatingTextWriter());
         }
 
-        [Setup]
+        [GlobalSetup]
         public void Reset()
         {
             foreach (var logger in new[] { _syncLogger, _asyncLogger, _fileLogger, _asyncFileLogger})

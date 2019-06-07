@@ -5,11 +5,11 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.Async.PerformanceTests
 {
-    internal class SignallingSink : ILogEventSink
+    class SignallingSink : ILogEventSink
     {
-        private readonly int _expectedCount;
-        private readonly ManualResetEvent _wh;
-        private int _current;
+        readonly int _expectedCount;
+        readonly ManualResetEvent _wh;
+        int _current;
 
         public SignallingSink(int expectedCount)
         {
