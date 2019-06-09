@@ -15,7 +15,7 @@ namespace Serilog.Sinks.Async.Tests
         /// <summary>
         ///     If <see cref="withDelay" />, then adds a 1sec delay before every fifth element created
         /// </summary>
-        private static void CreateAudits(ILogger logger, int count, bool withDelay)
+        static void CreateAudits(ILogger logger, int count, bool withDelay)
         {
             var delay = TimeSpan.FromMilliseconds(1000);
             var sw = new Stopwatch();
@@ -47,7 +47,7 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-        private static List<LogEvent> RetrieveEvents(MemorySink sink, int count)
+        static List<LogEvent> RetrieveEvents(MemorySink sink, int count)
         {
             Debug.WriteLine("{0:h:mm:ss tt} Retrieving {1} events", DateTime.Now, count);
 
@@ -91,9 +91,9 @@ namespace Serilog.Sinks.Async.Tests
 
         public abstract class SinkSpecBase : IDisposable
         {
-            private bool _delayCreation;
-            private Logger _logger;
-            private MemorySink _memorySink;
+            bool _delayCreation;
+            Logger _logger;
+            MemorySink _memorySink;
 
             protected SinkSpecBase(bool useBufferedQueue, bool delayCreation)
             {
