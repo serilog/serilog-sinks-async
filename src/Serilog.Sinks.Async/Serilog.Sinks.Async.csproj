@@ -15,7 +15,7 @@
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
     <PackageId>Serilog.Sinks.Async</PackageId>
     <PackageTags>serilog;async</PackageTags>
-    <PackageIconUrl>https://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
+    <PackageIcon>serilog-sink-nuget.png</PackageIcon>
     <PackageProjectUrl>https://serilog.net</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/serilog/serilog-sinks-async</RepositoryUrl>
@@ -35,6 +35,13 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' Or '$(TargetFramework)' == 'net461' ">
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\assets\serilog-sink-nuget.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
