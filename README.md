@@ -49,8 +49,8 @@ In practice, this configuration (assuming one provisions an adequate `bufferSize
 // Example check: log message to an out of band alarm channel if logging is showing signs of getting overwhelmed
 void ExecuteAsyncBufferCheck(IAsyncLogEventSinkInspector inspector)
 {
-    var usagePct = inspector.Count * 100 / inspector.BoundedCapacity;
-    if (usagePct > 50) SelfLog.WriteLine("Log buffer exceeded {0:p0} usage (limit: {1})", usagePct, inspector.BoundedCapacity);
+    var usagePct = inspector.Count * 100 / inspector.BufferSize;
+    if (usagePct > 50) SelfLog.WriteLine("Log buffer exceeded {0:p0} usage (limit: {1})", usagePct, inspector.BufferSize);
 }
 
 class MonitorConfiguration : IAsyncLogEventSinkMonitor
