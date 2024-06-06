@@ -9,14 +9,14 @@ artifacts:
 deploy:
 - provider: NuGet
   api_key:
-    secure: dX4ewxGxhiNURkqJPuZQ8GQNjLvb8oZrHBThVotn+9GSMyQzeKXFpHkN04ykOfgc
+    secure: ZpUO4ECx4c/V0Ecj04cfV1UGd+ZABeEG9DDW2fjG8vITjNYhmbiiJH0qNOnRy2G3
   skip_symbols: true
   on:
-    branch: /^(master|dev)$/
+    branch: /^(main|dev)$/
 - provider: GitHub
   auth_token:
     secure: p4LpVhBKxGS5WqucHxFQ5c7C8cP74kbNB0Z8k9Oxx/PMaDQ1+ibmoexNqVU5ZlmX
   artifact: /Serilog.*\.nupkg/
   tag: v$(appveyor_build_version)
   on:
-    branch: master
+    branch: main
