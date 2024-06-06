@@ -1,4 +1,4 @@
-# Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/gvk0wl7aows14spn?svg=true)](https://ci.appveyor.com/project/serilog/serilog-sinks-async) [![NuGet](https://img.shields.io/nuget/v/Serilog.Sinks.Async.svg)](https://www.nuget.org/packages/Serilog.Sinks.Async) [![Join the chat at https://gitter.im/serilog/serilog](https://img.shields.io/gitter/room/serilog/serilog.svg)](https://gitter.im/serilog/serilog)
+# Serilog.Sinks.Async [![Build status](https://ci.appveyor.com/api/projects/status/gvk0wl7aows14spn?svg=true)](https://ci.appveyor.com/project/serilog/serilog-sinks-async) [![NuGet](https://img.shields.io/nuget/v/Serilog.Sinks.Async.svg)](https://www.nuget.org/packages/Serilog.Sinks.Async) 
 
 An asynchronous wrapper for other [Serilog](https://serilog.net) sinks. Use this sink to reduce the overhead of logging calls by delegating work to a background thread. This is especially suited to non-batching sinks like the [File](https://github.com/serilog/serilog-sinks-file) and [RollingFile](https://github.com/serilog/serilog-sinks-rollingfile) sinks that may be affected by I/O bottlenecks.
 
@@ -8,8 +8,8 @@ An asynchronous wrapper for other [Serilog](https://serilog.net) sinks. Use this
 
 Install from [NuGet](https://nuget.org/packages/serilog.sinks.async):
 
-```powershell
-Install-Package Serilog.Sinks.Async
+```sh
+dotnet add package Serilog.Sinks.Async
 ```
 
 Assuming you have already installed the target sink, such as the file sink, move the wrapped sink's configuration within a `WriteTo.Async()` statement:
