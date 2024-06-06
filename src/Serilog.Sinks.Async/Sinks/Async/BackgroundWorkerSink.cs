@@ -32,7 +32,7 @@ sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, 
 
     long _droppedMessages;
 
-    public BackgroundWorkerSink(ILogEventSink wrappedSink, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor? monitor = null)
+    public BackgroundWorkerSink(ILogEventSink wrappedSink, int bufferCapacity, bool blockWhenFull, IAsyncLogEventSinkMonitor? monitor)
     {
         if (bufferCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(bufferCapacity));
         _wrappedSink = wrappedSink ?? throw new ArgumentNullException(nameof(wrappedSink));
