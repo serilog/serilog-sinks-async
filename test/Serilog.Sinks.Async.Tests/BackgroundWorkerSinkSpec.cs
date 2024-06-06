@@ -10,28 +10,28 @@ using Serilog.Parsing;
 using Serilog.Sinks.Async.Tests.Support;
 using Xunit;
 
-namespace Serilog.Sinks.Async.Tests
-{
-    public class BackgroundWorkerSinkSpec
-    {
-        readonly Logger _logger;
-        readonly MemorySink _innerSink;
+namespace Serilog.Sinks.Async.Tests;
 
-        public BackgroundWorkerSinkSpec()
-        {
+public class BackgroundWorkerSinkSpec
+{
+    readonly Logger _logger;
+    readonly MemorySink _innerSink;
+
+    public BackgroundWorkerSinkSpec()
+    {
             _innerSink = new MemorySink();
             _logger = new LoggerConfiguration().WriteTo.Sink(_innerSink).CreateLogger();
         }
 
-        [Fact]
-        public void WhenCtorWithNullSink_ThenThrows()
-        {
+    [Fact]
+    public void WhenCtorWithNullSink_ThenThrows()
+    {
             Assert.Throws<ArgumentNullException>(() => new BackgroundWorkerSink(null, 10000, false, null));
         }
 
-        [Fact]
-        public async Task WhenEmitSingle_ThenRelaysToInnerSink()
-        {
+    [Fact]
+    public async Task WhenEmitSingle_ThenRelaysToInnerSink()
+    {
             using (var sink = this.CreateSinkWithDefaultOptions())
             {
                 var logEvent = CreateEvent();
@@ -44,9 +44,9 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-        [Fact]
-        public async Task WhenInnerEmitThrows_ThenContinuesRelaysToInnerSink()
-        {
+    [Fact]
+    public async Task WhenInnerEmitThrows_ThenContinuesRelaysToInnerSink()
+    {
             using (var sink = this.CreateSinkWithDefaultOptions())
             {
                 _innerSink.ThrowAfterCollecting = true;
@@ -65,9 +65,9 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-        [Fact]
-        public async Task WhenEmitMultipleTimes_ThenRelaysToInnerSink()
-        {
+    [Fact]
+    public async Task WhenEmitMultipleTimes_ThenRelaysToInnerSink()
+    {
             using (var sink = this.CreateSinkWithDefaultOptions())
             {
                 var events = new List<LogEvent>
@@ -84,9 +84,9 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-        [Fact]
-        public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_DoesNotBlock()
-        {
+    [Fact]
+    public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_DoesNotBlock()
+    {
             var batchTiming = Stopwatch.StartNew();
             using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
             {
@@ -115,9 +115,9 @@ namespace Serilog.Sinks.Async.Tests
             Assert.InRange(batchTiming.ElapsedMilliseconds, 950, 2050);
         }
 
-        [Fact]
-        public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_ThenDropsEventsAndRecovers()
-        {
+    [Fact]
+    public async Task GivenDefaultConfig_WhenRequestsExceedCapacity_ThenDropsEventsAndRecovers()
+    {
             using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: false /*default*/))
             {
                 var acceptInterval = TimeSpan.FromMilliseconds(200);
@@ -150,9 +150,9 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-        [Fact]
-        public async Task GivenConfiguredToBlock_WhenQueueFilled_ThenBlocks()
-        {
+    [Fact]
+    public async Task GivenConfiguredToBlock_WhenQueueFilled_ThenBlocks()
+    {
             using (var sink = new BackgroundWorkerSink(_logger, 1, blockWhenFull: true))
             {
                 // Cause a delay when emmitting to the inner sink, allowing us to fill the queue to capacity
@@ -189,9 +189,9 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-        [Fact]
-        public void MonitorParameterAffordsSinkInspectorSuitableForHealthChecking()
-        {
+    [Fact]
+    public void MonitorParameterAffordsSinkInspectorSuitableForHealthChecking()
+    {
             var collector = new MemorySink { DelayEmit = TimeSpan.FromSeconds(2) };
             // 2 spaces in queue; 1 would make the second log entry eligible for dropping if consumer does not activate instantaneously
             var bufferSize = 2;
@@ -230,16 +230,15 @@ namespace Serilog.Sinks.Async.Tests
             Assert.Null(monitor.Inspector);
         }
 
-        BackgroundWorkerSink CreateSinkWithDefaultOptions()
-        {
+    BackgroundWorkerSink CreateSinkWithDefaultOptions()
+    {
             return new BackgroundWorkerSink(_logger, 10000, false);
         }
 
-        static LogEvent CreateEvent()
-        {
+    static LogEvent CreateEvent()
+    {
             return new LogEvent(DateTimeOffset.MaxValue, LogEventLevel.Error, null,
                 new MessageTemplate("amessage", Enumerable.Empty<MessageTemplateToken>()),
                 Enumerable.Empty<LogEventProperty>());
         }
-    }
 }

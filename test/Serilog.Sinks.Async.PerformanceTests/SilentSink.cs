@@ -1,12 +1,11 @@
 using Serilog.Core;
 using Serilog.Events;
 
-namespace Serilog.Sinks.Async.PerformanceTests
+namespace Serilog.Sinks.Async.PerformanceTests;
+
+public class SilentSink : ILogEventSink
 {
-    public class SilentSink : ILogEventSink
+    public void Emit(LogEvent logEvent)
     {
-        public void Emit(LogEvent logEvent)
-        {
-        }
     }
 }

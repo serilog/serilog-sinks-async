@@ -2,16 +2,15 @@
 using System.IO;
 using System.Text;
 
-namespace Serilog.Sinks.Async.PerformanceTests.Support
-{
-    public class TerminatingTextWriter : TextWriter
-    {
-        public override Encoding Encoding { get; } = Encoding.ASCII;
+namespace Serilog.Sinks.Async.PerformanceTests.Support;
 
-        public override void Write(char value)
-        {
-            Console.WriteLine("SelfLog triggered");
-            Environment.Exit(1);
-        }
+public class TerminatingTextWriter : TextWriter
+{
+    public override Encoding Encoding { get; } = Encoding.ASCII;
+
+    public override void Write(char value)
+    {
+        Console.WriteLine("SelfLog triggered");
+        Environment.Exit(1);
     }
 }

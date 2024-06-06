@@ -8,15 +8,15 @@ using Serilog.Core;
 using Xunit;
 using System.Linq;
 
-namespace Serilog.Sinks.Async.Tests
+namespace Serilog.Sinks.Async.Tests;
+
+public class BackgroundWorkerSinkIntegrationSpec
 {
-    public class BackgroundWorkerSinkIntegrationSpec
+    /// <summary>
+    ///     If <see cref="withDelay" />, then adds a 1sec delay before every fifth element created
+    /// </summary>
+    static void CreateAudits(ILogger logger, int count, bool withDelay)
     {
-        /// <summary>
-        ///     If <see cref="withDelay" />, then adds a 1sec delay before every fifth element created
-        /// </summary>
-        static void CreateAudits(ILogger logger, int count, bool withDelay)
-        {
             var delay = TimeSpan.FromMilliseconds(1000);
             var sw = new Stopwatch();
             sw.Start();
@@ -47,8 +47,8 @@ namespace Serilog.Sinks.Async.Tests
             }
         }
 
-        static List<LogEvent> RetrieveEvents(MemorySink sink, int count)
-        {
+    static List<LogEvent> RetrieveEvents(MemorySink sink, int count)
+    {
             Debug.WriteLine("{0:h:mm:ss tt} Retrieving {1} events", DateTime.Now, count);
 
             Loop.Retry(() => sink.Events, events => events != null && events.Count >= count, TimeSpan.FromSeconds(1),
@@ -57,46 +57,46 @@ namespace Serilog.Sinks.Async.Tests
             return sink.Events.ToList();
         }
 
-        public class GivenNoBufferQueueAndNoDelays : SinkSpecBase
+    public class GivenNoBufferQueueAndNoDelays : SinkSpecBase
+    {
+        public GivenNoBufferQueueAndNoDelays()
+            : base(false, false)
         {
-            public GivenNoBufferQueueAndNoDelays()
-                : base(false, false)
-            {
             }
-        }
+    }
 
-        public class GivenBufferQueueAndNoDelays : SinkSpecBase
+    public class GivenBufferQueueAndNoDelays : SinkSpecBase
+    {
+        public GivenBufferQueueAndNoDelays()
+            : base(true, false)
         {
-            public GivenBufferQueueAndNoDelays()
-                : base(true, false)
-            {
             }
-        }
+    }
 
-        public class GivenNoBufferQueueAndDelays : SinkSpecBase
+    public class GivenNoBufferQueueAndDelays : SinkSpecBase
+    {
+        public GivenNoBufferQueueAndDelays()
+            : base(false, true)
         {
-            public GivenNoBufferQueueAndDelays()
-                : base(false, true)
-            {
             }
-        }
+    }
 
-        public class GivenBufferQueueAndDelays : SinkSpecBase
+    public class GivenBufferQueueAndDelays : SinkSpecBase
+    {
+        public GivenBufferQueueAndDelays()
+            : base(true, true)
         {
-            public GivenBufferQueueAndDelays()
-                : base(true, true)
-            {
             }
-        }
+    }
 
-        public abstract class SinkSpecBase : IDisposable
+    public abstract class SinkSpecBase : IDisposable
+    {
+        bool _delayCreation;
+        Logger _logger;
+        MemorySink _memorySink;
+
+        protected SinkSpecBase(bool useBufferedQueue, bool delayCreation)
         {
-            bool _delayCreation;
-            Logger _logger;
-            MemorySink _memorySink;
-
-            protected SinkSpecBase(bool useBufferedQueue, bool delayCreation)
-            {
                 _delayCreation = delayCreation;
 
                 _memorySink = new MemorySink();
@@ -117,15 +117,15 @@ namespace Serilog.Sinks.Async.Tests
                 Debug.WriteLine("{0:h:mm:ss tt} Started test", DateTime.Now);
             }
 
-            public void Dispose()
-            {
+        public void Dispose()
+        {
                 _logger.Dispose();
                 Debug.WriteLine("{0:h:mm:ss tt} Ended test", DateTime.Now);
             }
 
-            [Fact]
-            public void WhenAuditSingle_ThenQueued()
-            {
+        [Fact]
+        public void WhenAuditSingle_ThenQueued()
+        {
                 CreateAudits(_logger, 1, _delayCreation);
 
                 var result = RetrieveEvents(_memorySink, 1);
@@ -133,9 +133,9 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.Single(result);
             }
 
-            [Fact]
-            public void WhenAuditTen_ThenQueued()
-            {
+        [Fact]
+        public void WhenAuditTen_ThenQueued()
+        {
                 CreateAudits(_logger, 10, _delayCreation);
 
                 var result = RetrieveEvents(_memorySink, 10);
@@ -143,9 +143,9 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.Equal(10, result.Count);
             }
 
-            [Fact]
-            public void WhenAuditHundred_ThenQueued()
-            {
+        [Fact]
+        public void WhenAuditHundred_ThenQueued()
+        {
                 CreateAudits(_logger, 100, _delayCreation);
 
                 var result = RetrieveEvents(_memorySink, 100);
@@ -153,15 +153,14 @@ namespace Serilog.Sinks.Async.Tests
                 Assert.Equal(100, result.Count);
             }
 
-            [Fact]
-            public void WhenAuditFiveHundred_ThenQueued()
-            {
+        [Fact]
+        public void WhenAuditFiveHundred_ThenQueued()
+        {
                 CreateAudits(_logger, 500, _delayCreation);
 
                 var result = RetrieveEvents(_memorySink, 500);
 
                 Assert.Equal(500, result.Count);
             }
-        }
     }
 }

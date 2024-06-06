@@ -1,13 +1,13 @@
 ﻿using Serilog.Sinks.Async.Tests.Support;
 using Xunit;
 
-namespace Serilog.Sinks.Async.Tests
+namespace Serilog.Sinks.Async.Tests;
+
+public class BackgroundWorkerSinkTests
 {
-    public class BackgroundWorkerSinkTests
+    [Fact]
+    public void EventsArePassedToInnerSink()
     {
-        [Fact]
-        public void EventsArePassedToInnerSink()
-        {
             var collector = new MemorySink();
 
             using (var log = new LoggerConfiguration()
@@ -21,9 +21,9 @@ namespace Serilog.Sinks.Async.Tests
             Assert.Equal(2, collector.Events.Count);
         }
 
-        [Fact]
-        public void DisposeCompletesWithoutWorkPerformed()
-        {
+    [Fact]
+    public void DisposeCompletesWithoutWorkPerformed()
+    {
             var collector = new MemorySink();
 
             using (new LoggerConfiguration()
@@ -35,9 +35,9 @@ namespace Serilog.Sinks.Async.Tests
             Assert.Empty(collector.Events);
         }
 
-        [Fact]
-        public void CtorAndDisposeInformMonitor()
-        {
+    [Fact]
+    public void CtorAndDisposeInformMonitor()
+    {
             var collector = new MemorySink();
             var monitor = new DummyMonitor();
 
@@ -50,5 +50,4 @@ namespace Serilog.Sinks.Async.Tests
 
             Assert.Null(monitor.Inspector);
         }
-    }
 }
