@@ -22,13 +22,16 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.Async;
 
-sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, IDisposable
+sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, IDisposable, ISetLoggingFailureListener
 {
     readonly ILogEventSink _wrappedSink;
     readonly bool _blockWhenFull;
     readonly BlockingCollection<LogEvent> _queue;
     readonly Task _worker;
     readonly IAsyncLogEventSinkMonitor? _monitor;
+    
+    // By contract, set only during initialization, so updates are not synchronized.
+    ILoggingFailureListener _failureListener = SelfLog.FailureListener;
 
     long _droppedMessages;
 
@@ -46,7 +49,10 @@ sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, 
     public void Emit(LogEvent logEvent)
     {
         if (_queue.IsAddingCompleted)
+        {
+            _failureListener.OnLoggingFailed(this, LoggingFailureKind.Final, "the sink has been disposed", [logEvent], null);
             return;
+        }
 
         try
         {
@@ -59,14 +65,15 @@ sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, 
                 if (!_queue.TryAdd(logEvent))
                 {
                     Interlocked.Increment(ref _droppedMessages);
-                    SelfLog.WriteLine("{0} unable to enqueue, capacity {1}", typeof(BackgroundWorkerSink), _queue.BoundedCapacity);
+                    _failureListener.OnLoggingFailed(this, LoggingFailureKind.Permanent, $"unable to enqueue, capacity {_queue.BoundedCapacity}", [logEvent], null);
                 }
             }
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
             // Thrown in the event of a race condition when we try to add another event after
             // CompleteAdding has been called
+            _failureListener.OnLoggingFailed(this, LoggingFailureKind.Final, "the sink has been disposed", [logEvent], ex);
         }
     }
 
@@ -95,13 +102,13 @@ sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, 
                 }
                 catch (Exception ex)
                 {
-                    SelfLog.WriteLine("{0} failed to emit event to wrapped sink: {1}", typeof(BackgroundWorkerSink), ex);
+                    _failureListener.OnLoggingFailed(this, LoggingFailureKind.Permanent, "failed to emit event to wrapped sink", [next], ex);
                 }
             }
         }
         catch (Exception fatal)
         {
-            SelfLog.WriteLine("{0} fatal error in worker thread: {1}", typeof(BackgroundWorkerSink), fatal);
+            _failureListener.OnLoggingFailed(this, LoggingFailureKind.Final, "fatal error in worker thread", null, fatal);
         }
     }
 
@@ -110,4 +117,9 @@ sealed class BackgroundWorkerSink : ILogEventSink, IAsyncLogEventSinkInspector, 
     int IAsyncLogEventSinkInspector.Count => _queue.Count;
 
     long IAsyncLogEventSinkInspector.DroppedMessagesCount => _droppedMessages;
+    
+    public void SetFailureListener(ILoggingFailureListener failureListener)
+    {
+        _failureListener = failureListener ?? throw new ArgumentNullException(nameof(failureListener));
+    }
 }
