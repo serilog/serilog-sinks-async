@@ -1,4 +1,6 @@
-﻿using Serilog.Sinks.Async.Tests.Support;
+﻿using System;
+using Serilog.Events;
+using Serilog.Sinks.Async.Tests.Support;
 using Xunit;
 
 namespace Serilog.Sinks.Async.Tests;
@@ -49,5 +51,20 @@ public class BackgroundWorkerSinkTests
         }
 
         Assert.Null(monitor.Inspector);
+    }
+
+    [Fact]
+    public void SupportsLoggingFailureListener()
+    {
+        var failureListener = new CollectingFailureListener();
+        var sink = new BackgroundWorkerSink(new NotImplementedSink(), 1, false, null);
+        sink.SetFailureListener(failureListener);
+        var evt = new LogEvent(DateTimeOffset.Now, LogEventLevel.Information, null, MessageTemplate.Empty, []);
+        sink.Emit(evt);
+        sink.Dispose();
+        var collected = Assert.Single(failureListener.Events);
+        Assert.Same(evt, collected);
+        var exception = Assert.Single(failureListener.Exceptions);
+        Assert.IsType<NotImplementedException>(exception);
     }
 }
