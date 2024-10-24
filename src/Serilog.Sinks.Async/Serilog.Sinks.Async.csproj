@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Asynchronous sink wrapper for Serilog.</Description>
-    <VersionPrefix>2.1.0</VersionPrefix>
+    <VersionPrefix>2.1.1</VersionPrefix>
     <Authors>Jezz Santos;Serilog Contributors</Authors>
     <!-- .NET Framework version targeting is frozen at these two TFMs. -->
     <TargetFrameworks Condition=" '$(OS)' == 'Windows_NT'">net471;net462</TargetFrameworks>
