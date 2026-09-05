@@ -18,7 +18,7 @@ Assuming you have already installed the target sink, such as the file sink, move
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Async(a => a.File("logs/myapp.log"))
     // Other logger configuration
-    .CreateLogger()
+    .CreateLogger();
 
 Log.Information("This will be written to disk on the worker thread");
 
